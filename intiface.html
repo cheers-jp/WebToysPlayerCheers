@@ -4,24 +4,25 @@
 <head>
 	<link rel="stylesheet" href="main.css">
 	<link rel="shortcut icon" href="#">
-	<title>WebToysPlayerCheers(Bluetooth)</title>
+	<title>WebToysPlayerCheers(Intiface)</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
 	<div id="header">
-		<a href="intiface.html">Intiface接続モード</a>
+		<a href="index.html">Bluetooth接続モード</a>
 		<!--<a target="_blank" href="README_ja.html">使い方</a>-->
 		<a href="https://github.com/cheers-jp/WebToysPlayerCheers">GitHub</a>
 		<a target="_blank" href="LICENSE.txt">LICENSE</a>
 	</div>
 	<hr />
 	<div class="ui">
-		<span id="connectStatus"></span>
+		<input id="serverURL" type="text" value="localhost:12345">
+		<button id="connectServerButton">Intifaceへ接続</button>
+		接続状態 <span id="connectStatus"></span>
 	</div>
 	<video id="player" src="" controls style="width: 200px; height: 200px;"></video>
-
 	<div class="ui" id="seekUi">
 		<span id="seekHourSpan"><input id="seekHourInput" type="number" style="width:3em;" min="0" value="0">時</span>
 		<span id="seekMinuteSpan"><input id="seekMinuteInput" type="number" style="width:3em;" min="0" max="59"
@@ -85,8 +86,6 @@
 		<ul id="groupTree" class="tree"></ul>
 	</div>
 
-
-
 	<script type="importmap">
 		{
 		  "imports": {
@@ -94,7 +93,7 @@
 			"buttplug-wasm": "https://cdn.jsdelivr.net/npm/buttplug-wasm@2.0.1/dist/buttplug-wasm.mjs"
 		  }
 		}
-        </script>
+	  </script>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 	<script src="main.js" type="module"></script>
