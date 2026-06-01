@@ -1,1 +1,1 @@
-WebSexToysPlayer now includes automatic script loading, folder import, zip file import and export, and save functionality. 
+WebToysPlayerCheers adds automatic script loading, folder import, zip file import and export, and save functionality to WebSexToysPlayer for smartphones and tablets.
