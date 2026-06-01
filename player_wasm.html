@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+	<link rel="stylesheet" href="main.css">
+	<link rel="shortcut icon" href="#">
+	<title>WebSexToysPlayer Standalone</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+	<div id="header">
+		<a href="player_intiface.html">Intiface接続版</a>
+		<!--<a target="_blank" href="README_ja.html">使い方</a>-->
+		<a href="https://github.com/cheers-jp/WebToysPlayerCheers">GitHub</a>
+		<a target="_blank" href="LICENSE.txt">LICENSE</a>
+	</div>
+	<hr />
+	<div class="ui">
+		<span id="connectStatus"></span>
+	</div>
+	<video id="player" src="" controls style="width: 200px; height: 200px;"></video>
+
+	<div class="ui" id="seekUi">
+		<span id="seekHourSpan"><input id="seekHourInput" type="number" style="width:3em;" min="0" value="0">時</span>
+		<span id="seekMinuteSpan"><input id="seekMinuteInput" type="number" style="width:3em;" min="0" max="59"
+				value="0">分</span>
+		<span id="seekSecondSpan"><input id="seekSecondInput" type="number" style="width:3em;" min="0" max="59"
+				value="0">秒</span>
+		<button id="seekButton" type="button">シーク</button>
+                </br>
+		<button id="connectDeviceButton">デバイス接続</button>
+		<button id="coyoteConnectButton">Coyote接続</button>
+		<button id="forceStopButton">強制停止</button>
+	</div>
+	<div>
+		<h3>再生ファイル</h3>
+	</div>
+	<div class="ui">
+		<input id="mediaInput" type="file" accept="video/*,audio/*" style="display: none;" />
+		<button id="mediaButton" type="button" style="color: red;">動画や音声を選択</button>
+                <button id="folderInputButton" type="button" style="color: blue;">フォルダからスクリプトを一括登録</button>
+                <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+	</div>
+	<div>
+                <span id="mediaNameSpan" style="display: none;"></span>
+		<ul id="ScriptList"></ul>
+	</div>
+
+	<div>
+		<h3>連動設定</h3>
+		<ul>
+			<li>
+				タイミング調整:<input id="offset" type="number" style="width:4em;" value="0" step="0.1" />秒
+				<button id="offsetPlusButton" type="button">+</button>
+				<button id="offsetMinusButton" type="button">-</button>
+			</li>
+			<li class="UFOTWsettingli" style="display: none;">
+				<input id="UFOTWreverseLRCheckbox" type="checkbox" />
+				<label for="UFOTWreverseLRCheckbox">UFOTW左右反転</label>
+			</li>
+			<li class="UFOTWsettingli" style="display: none;">
+				<input id="VorzeSAScriptToUFOTWCheckbox" type="checkbox" />
+				<label for="VorzeSAScriptToUFOTWCheckbox">UFOSA用のスクリプトでUFOTWを動かす</label>
+			</li>
+		</ul>
+	</div>
+	<div>
+		<h3>接続済みデバイス</h3>
+		<div id="DeviceListContainer"></div>
+	</div>
+	<div>
+		<h3>スクリプト管理</h3>
+	</div>
+	<div class="ui">
+		<button id="zipUploadBtn">ZIPファイルをインポート</button>
+		<button id="zipDownloadBtn">ZIP形式でエクスポート</button>
+	</div>
+	<div class="ui">
+		<button id="sortAsc">昇順</button>
+		<input type="file" id="zipUploadInput" accept=".zip" style="display:none">
+		<button id="sortDesc">降順</button>
+		<button id="addRootGroupBtn">フォルダ作成</button>
+		<ul id="groupTree" class="tree"></ul>
+	</div>
+
+
+
+	<script type="importmap">
+		{
+		  "imports": {
+			"buttplug": "https://cdn.jsdelivr.net/npm/buttplug@3.2.1/dist/web/buttplug.mjs",
+			"buttplug-wasm": "https://cdn.jsdelivr.net/npm/buttplug-wasm@2.0.1/dist/buttplug-wasm.mjs"
+		  }
+		}
+        </script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+	<script src="main.js" type="module"></script>
+
+</body>
+
+</html>
