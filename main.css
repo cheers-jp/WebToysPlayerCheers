@@ -69,12 +69,15 @@ background-color: #f7f7f7;
 
 .tree li.group::before {
     content: "[+]";
-    width: 1em;
+    font-size: 1.3em;
+    width: 1.3em;
     margin-right: 5px;
 }
 
 .tree li.group.open::before {
     content: "[-]";
+    font-size: 1.3em;
+    width: 1.3em;
 }
 
 .tree ul {

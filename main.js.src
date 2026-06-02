@@ -1,0 +1,4112 @@
+﻿export const LANG = {
+    ja: {
+        ZIP_DOWNLOAD_FILENAME: "SexToysScripts.zip",
+        ITEM_LABEL_LOAD: "読込",
+        ITEM_LABEL_NAMECHANGE: "[名前]",
+        ITEM_LABEL_FOLDERCREATE: "[フォルダ]",
+        ITEM_LABEL_DELETE: "[消去]",
+        MESSAGE_INPUT_FOLDERNAME: "新しいフォルダ名を入力して下さい",
+        MESSAGE_INPUT_NAME: "新しい名前を入力して下さい",
+    },
+    en: {
+        ZIP_DOWNLOAD_FILENAME: "SexToysScripts.zip",
+        ITEM_LABEL_LOAD: "Load",
+        ITEM_LABEL_NAMECHANGE: "Name",
+        ITEM_LABEL_FOLDERCREATE: "Sub",
+        ITEM_LABEL_DELETE: "Del",
+        MESSAGE_INPUT_FOLDERNAME: "Please enter a new folder name.",
+        MESSAGE_INPUT_NAME: "Please enter a new name.",
+    }
+};
+let currentLang = LANG.ja;
+// currentLang.ZIP_DOWNLOAD_FILENAME;
+// currentLang.ITEM_LABEL_LOAD;
+// currentLang.ITEM_LABEL_NAMECHANGE;
+// currentLang.ITEM_LABEL_FOLDERCREATE;
+// currentLang.ITEM_LABEL_DELETE;
+// currentLang.MESSAGE_INPUT_FOLDERNAME;
+// currentLang.MESSAGE_INPUT_NAME;
+
+function decodeFileNameAuto(bytes) {
+    // UTF-8 として decode してみる
+    const utf8 = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+
+    // 文字化け（? = U+FFFD）が無ければ UTF-8 と判断
+    if (!/\ufffd/.test(utf8)) {
+        return utf8;
+    }
+
+    // ダメなら SJIS として decode
+    return new TextDecoder("shift_jis").decode(bytes);
+}
+function decodeContentAuto(uint8) {
+    // UTF-8 として decode
+    const utf8 = new TextDecoder("utf-8", { fatal: false }).decode(uint8);
+
+    // 文字化けが無ければ UTF-8 と判断
+    if (!/\ufffd/.test(utf8)) {
+        return utf8;
+    }
+
+    // ダメなら SJIS として decode
+    return new TextDecoder("shift_jis").decode(uint8);
+}
+function generateUniqueId() {
+    // 現在時刻とランダム値を組み合わせてユニークIDを作る
+    return (
+        Date.now().toString(36) +        // 時刻を36進数に変換
+        Math.random().toString(36).substr(2, 9) // ランダム文字列
+    );
+}
+// データベースを開く（なければ作成）
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("MyDB", 1);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains("files")) {
+                db.createObjectStore("files");
+            }
+        };
+
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+            reject(event.target.error);
+        };
+    });
+}
+
+// ★ 書き込み関数
+async function indexdb_Add(key, text) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("files", "readwrite");
+        const store = tx.objectStore("files");
+        const request = store.put(text, key);
+
+        request.onsuccess = () => resolve(true);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+// ★ 読み込み関数
+async function indexdb_Read(key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("files", "readonly");
+        const store = tx.objectStore("files");
+        const request = store.get(key);
+
+        request.onsuccess = (e) => resolve(e.target.result || null);
+        request.onerror = (e) => reject(e.target.error);
+    });
+
+}
+var zn = Object.create;
+var Zt = Object.defineProperty;
+var Gn = Object.getOwnPropertyDescriptor;
+var Yn = Object.getOwnPropertyNames;
+var jn = Object.getPrototypeOf
+  , Qn = Object.prototype.hasOwnProperty;
+var er = (c, e) => () => (e || c((e = {
+    exports: {}
+}).exports, e),
+e.exports);
+var Xn = (c, e, t, n) => {
+    if (e && typeof e == "object" || typeof e == "function")
+        for (let o of Yn(e))
+            !Qn.call(c, o) && o !== t && Zt(c, o, {
+                get: () => e[o],
+                enumerable: !(n = Gn(e, o)) || n.enumerable
+            });
+    return c
+}
+;
+var Kn = (c, e, t) => (t = c != null ? zn(jn(c)) : {},
+Xn(e || !c || !c.__esModule ? Zt(t, "default", {
+    value: c,
+    enumerable: !0
+}) : t, c));
+var fr = er(J => {
+    "use strict";
+    Object.defineProperty(J, "__esModule", {
+        value: !0
+    });
+    J.roundAction = J.getSpeed = J.getActionGroups = void 0;
+    var ni = function(c) {
+        var e = []
+          , t = -1
+          , n = -1;
+        return c.forEach(function(o, a) {
+            if (a === 0) {
+                e.push([o]),
+                t++;
+                return
+            }
+            if (a === 1) {
+                e[t].push(o),
+                n = Math.max(250, o.at - c[a - 1].at);
+                return
+            }
+            var h = o.at - c[a - 1].at;
+            h > 5 * n ? (e.push([o]),
+            t++) : e[t].push(o),
+            n = Math.max(250, h)
+        }),
+        e
+    };
+    J.getActionGroups = ni;
+    var ii = function(c, e) {
+        if (!c || !e || c.at === e.at)
+            return 0;
+        try {
+            if (e.at < c.at) {
+                var t = e;
+                e = c,
+                c = t
+            }
+            return 1e3 * (Math.abs(e.pos - c.pos) / Math.abs(e.at - c.at))
+        } catch (n) {
+            return console.error("Failed on actions", c, e, n),
+            0
+        }
+    };
+    J.getSpeed = ii;
+    var si = function(c) {
+        var e = {
+            at: Math.max(0, Math.round(c.at)),
+            pos: Math.max(0, Math.min(100, Math.round(c.pos)))
+        };
+        return c.subActions && (e.subActions = c.subActions.map(function(t) {
+            return J.roundAction(t)
+        })),
+        c.type && (e.type = c.type),
+        e
+    };
+    J.roundAction = si
+}
+);
+var vr = er(Q => {
+    "use strict";
+    var de = Q && Q.__assign || function() {
+        return de = Object.assign || function(c) {
+            for (var e, t = 1, n = arguments.length; t < n; t++) {
+                e = arguments[t];
+                for (var o in e)
+                    Object.prototype.hasOwnProperty.call(e, o) && (c[o] = e[o])
+            }
+            return c
+        }
+        ,
+        de.apply(this, arguments)
+    }
+    ;
+    Object.defineProperty(Q, "__esModule", {
+        value: !0
+    });
+    Q.convertFunscriptToCsv = Q.addFunscriptMetadata = Q.getFunscriptFromString = void 0;
+    var dt = fr()
+      , oi = function(c) {
+        var e = JSON.parse(c);
+        return Q.addFunscriptMetadata(e)
+    };
+    Q.getFunscriptFromString = oi;
+    var ai = function(c) {
+        var e = de({}, c);
+        e.actions = e.actions.sort(function(o, a) {
+            return o.at - a.at
+        }).map(dt.roundAction);
+        var t = e.actions.slice(-1)[0].at
+          , n = e.actions.reduce(function(o, a, h) {
+            if (h === 0)
+                return o;
+            var f = dt.getSpeed(e.actions[h - 1], e.actions[h]);
+            return o + f
+        }, 0) / (e.actions.length - 1);
+        return e.metadata = de(de({}, e.metadata), {
+            duration: t,
+            average_speed: n
+        }),
+        e
+    };
+    Q.addFunscriptMetadata = ai;
+    var li = function(c) {
+        var e = JSON.parse(c)
+          , t = e.actions.map(function(o) {
+            var a = dt.roundAction(o);
+            return a.at + "," + a.pos
+        }).join(`
+`)
+          , n = new Blob([t],{
+            type: "text/plain"
+        });
+        return n
+    };
+    Q.convertFunscriptToCsv = li
+}
+);
+import*as te from "buttplug";
+import {ButtplugWasmClientConnector as tr} from "buttplug-wasm";
+var Le = class {
+    _client = new te.ButtplugClient;
+    _deviceRefleshedEvents = [];
+    UFOTWReverseLR = !1;
+    get isViberatorConnected() {
+        return this.Devices.Viberators.length > 0
+    }
+    get isRotatorConnected() {
+        return this.Devices.Rotators.length > 0
+    }
+    get isLinearsConnected() {
+        return this.Devices.Linears.length > 0
+    }
+    get isUFOTWConnected() {
+        return this.Devices.UFOTW.length > 0
+    }
+    Devices = {
+        Viberators: [],
+        Rotators: [],
+        Linears: [],
+        UFOTW: []
+    };
+    constructor() {
+        console.log("buttplugOperator constructed."),
+        this._client.addListener("deviceadded", async e => {
+            console.log(`device added: ${e.name}`),
+            this.ParseDeviceList()
+        }
+        ),
+        this._client.addListener("deviceremoved", e => {
+            console.log(`device removed: ${e.name}`),
+            this.ParseDeviceList()
+        }
+        )
+    }
+    async connectWasm() {
+        return tr.activateLogging(),
+        this.connect(new tr)
+    }
+    async connectWebsocket(e) {
+        let t = new te.ButtplugBrowserWebsocketClientConnector(e);
+        return this.connect(t)
+    }
+    async connect(e) {
+        try {
+            await this._client.connect(e)
+        } catch (t) {
+            return console.log(`${t}`),
+            t instanceof te.ButtplugError && (console.log("this is a buttplug error"),
+            t instanceof te.ButtplugClientConnectorException ? console.log("This is a connector error") : console.log("Was another type of error")),
+            !1
+        }
+        return !0
+    }
+    AddDevicesRefleshedEvents(e) {
+        this._deviceRefleshedEvents.push(e)
+    }
+    ParseDeviceList() {
+        this.Devices.Viberators.splice(0),
+        this.Devices.Rotators.splice(0),
+        this.Devices.Linears.splice(0),
+        this.Devices.UFOTW.splice(0);
+        for (let e of this._client.devices) {
+            e.name === "Vorze UFO TW" ? (this.Devices.UFOTW.push(e),
+            e.rotate([[.3, !0], [.3, !1]]),
+            setTimeout( () => {
+                e.stop()
+            }
+            , 600)) : e.vibrateAttributes.length > 0 ? (this.Devices.Viberators.push(e),
+            e.vibrate(.5),
+            setTimeout( () => {
+                e.stop()
+            }
+            , 600)) : e.rotateAttributes.length > 0 ? (this.Devices.Rotators.push(e),
+            e.rotate(.5, !0),
+            setTimeout( () => {
+                e.stop()
+            }
+            , 600)) : e.linearAttributes.length > 0 && (this.Devices.Linears.push(e),
+            e.linear(0, 1e3),
+            setTimeout( () => {
+                e.linear(.5, 1e3)
+            }
+            , 1e3),
+            setTimeout( () => {
+                e.linear(0, 1e3)
+            }
+            , 2e3)),
+            console.log("Viberators:");
+            for (let t of this.Devices.Viberators)
+                console.log("  " + t.name);
+            console.log("Rotators:");
+            for (let t of this.Devices.Rotators)
+                console.log("  " + t.name);
+            console.log("Linears:");
+            for (let t of this.Devices.Linears)
+                console.log("  " + t.name)
+        }
+        for (let e of this._deviceRefleshedEvents)
+            e()
+    }
+    StopAllDevices() {
+        for (let e of this.Devices.Viberators)
+            e.stop();
+        for (let e of this.Devices.Rotators)
+            e.stop();
+        for (let e of this.Devices.Linears)
+            e.stop();
+        for (let e of this.Devices.UFOTW)
+            e.stop()
+    }
+    ForceStopAllDevices() {
+        this.SendViberateCmd(.1),
+        this.SendRotateCmd(.2, !0),
+        this.SendLinearCmd(.2, 1e3),
+        this.SendUFOTWCmd(.2, !0, .2, !0),
+        setTimeout( () => {
+            this.StopAllDevices()
+        }
+        , 500)
+    }
+    SendViberateCmd(e) {
+        console.log("SendViberateCmd: " + e),
+        this.Devices.Viberators.forEach(t => {
+            t.vibrate(e)
+        }
+        )
+    }
+    SendRotateCmd(e, t) {
+        this.Devices.Rotators.forEach(n => {
+            n.rotate(e, t)
+        }
+        )
+    }
+    SendLinearCmd(e, t) {
+        this.Devices.Linears.forEach(n => {
+            n.linear(e, t)
+        }
+        )
+    }
+    SendUFOTWCmd(e, t, n, o) {
+        this.Devices.UFOTW.forEach(a => {
+            this.UFOTWReverseLR ? a.rotate([[n, o], [e, t]]) : a.rotate([[e, t], [n, o]])
+        }
+        )
+    }
+    async ConnectDevice() {
+        this._client.connected ? await this._client.startScanning() : console.log("buttplug client is not connected.")
+    }
+}
+;
+var $ = class {
+    Milliseconds = 0;
+    Power = 0;
+    constructor(e, t) {
+        this.Milliseconds = e,
+        t < 0 ? this.Power = 0 : t > 1e3 ? this.Power = 1e3 : this.Power = t
+    }
+    get ButtPower() {
+        return this.Power / 1e3
+    }
+    get Seconds() {
+        return Math.trunc(this.Milliseconds / 1e3)
+    }
+    get HHMMSS() {
+        let e = Math.floor(this.Milliseconds / 1e3)
+          , t = Math.floor(e / 60)
+          , n = Math.floor(t / 60)
+          , o = String(e % 60).padStart(2, "0")
+          , a = String(t % 60).padStart(2, "0");
+        return `${String(n).padStart(2, "0")}:${a}:${o}`
+    }
+    toString() {
+        return `Time: ${this.Milliseconds}, Power: ${this.ButtPower}`
+    }
+}
+  , rr = /^([0-9]+)(\.[0-9]{1,2})?,(1000|[0-9]+)$/;
+function nr(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/);
+    t.slice(-1)[0] === "" && t.pop();
+    let n = !0;
+    for (let o = 0; o < t.length; o++)
+        if (!t[o].match(rr)) {
+            n = !1;
+            break
+        }
+    return n
+}
+function ir(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/)
+      , n = [];
+    for (let o of t) {
+        let a = o.match(rr);
+        if (a) {
+            let h = Number(a[1]) * 1e3;
+            if (a[2]) {
+                let v = a[2].replace(".", ""), O;
+                v.length == 1 ? O = Number(v) * 10 : O = Number(v),
+                h += O * 10
+            }
+            let f = Number(a[3])
+              , y = new $(h,f);
+            n.push(y)
+        }
+    }
+    return console.log("script start time: " + n[0].HHMMSS),
+    n
+}
+function lt(c) {
+    let e = [];
+    for (let n of c) {
+        let o = n.Seconds;
+        e[o] || (e[o] = []),
+        e[o].push(n)
+    }
+    return e
+}
+var Jn = [new $(500,800), new $(600,0), new $(1500,400), new $(1600,0), new $(2500,800), new $(2600,0), new $(3500,400), new $(3600,0), new $(4500,800), new $(4600,0), new $(5500,400), new $(5600,0), new $(6500,800), new $(6600,0), new $(7500,400), new $(7600,0)]
+  , Ci = lt(Jn);
+var sr = /^\s*([0-9]+)\s*,\s*(100|[0-9]{1,2})\s*,\s*(100|[0-9]{1,2})\s*$/;
+function or(c) {
+    if (!c)
+        return !1;
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/).filter(n => n.trim() !== "");
+    if (t.length === 0)
+        return !1;
+    for (let n of t)
+        if (!sr.test(n))
+            return !1;
+    return !0
+}
+function ar(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/).filter(o => o.trim() !== "")
+      , n = [];
+    for (let o of t) {
+        let a = o.match(sr);
+        if (!a)
+            continue;
+        let h = parseInt(a[1], 10)
+          , f = parseInt(a[2], 10)
+          , y = parseInt(a[3], 10);
+        (Number.isNaN(h) || Number.isNaN(f) || Number.isNaN(y)) && console.log("Nan error"),
+        n.push({
+            Milliseconds: h,
+            Frequency: f,
+            Strength: y
+        })
+    }
+    return n
+}
+var ct = class {
+    Milliseconds = 0;
+    Clockwise = !0;
+    Power = 0;
+    get ButtPower() {
+        return this.Power / 100
+    }
+    get Seconds() {
+        return Math.trunc(this.Milliseconds / 1e3)
+    }
+    get HHMMSS() {
+        let e = Math.floor(this.Milliseconds / 1e3)
+          , t = Math.floor(e / 60)
+          , n = Math.floor(t / 60)
+          , o = String(e % 60).padStart(2, "0")
+          , a = String(t % 60).padStart(2, "0");
+        return `${String(n).padStart(2, "0")}:${a}:${o}`
+    }
+    constructor(e, t, n) {
+        this.Milliseconds = e,
+        this.Clockwise = t,
+        n < 0 ? this.Power = 0 : n > 100 ? this.Power = 100 : this.Power = n
+    }
+    toString() {
+        return `Time: ${this.Milliseconds}, Clockwise: ${this.Clockwise} Power: ${this.ButtPower}`
+    }
+}
+  , lr = /^([0-9]+),(0|1),(100|[0-9]{1,2})$/;
+function cr(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/);
+    t.slice(-1)[0] === "" && t.pop();
+    let n = !0;
+    for (let o = 0; o < t.length; o++)
+        if (!t[o].match(lr)) {
+            n = !1;
+            break
+        }
+    return n
+}
+function ur(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/)
+      , n = [];
+    for (let o of t) {
+        let a = o.match(lr);
+        if (a) {
+            let h = Number(a[1]) * 100
+              , f = a[2] === "1"
+              , y = Number(a[3])
+              , v = new ct(h,f,y);
+            n.push(v)
+        }
+    }
+    return console.log("script start time: " + n[0].HHMMSS),
+    n
+}
+function dr(c) {
+    let e = [];
+    for (let n of c) {
+        let o = n.Seconds;
+        e[o] || (e[o] = []),
+        e[o].push(n)
+    }
+    return e
+}
+var ut = class {
+    Milliseconds = 0;
+    LeftClockwise = !0;
+    LeftPower = 0;
+    RightClockwise = !0;
+    RightPower = 0;
+    get LeftButtPower() {
+        return this.LeftPower / 100
+    }
+    get RightButtPower() {
+        return this.RightPower / 100
+    }
+    get Seconds() {
+        return Math.trunc(this.Milliseconds / 1e3)
+    }
+    get HHMMSS() {
+        let e = Math.floor(this.Milliseconds / 1e3)
+          , t = Math.floor(e / 60)
+          , n = Math.floor(t / 60)
+          , o = String(e % 60).padStart(2, "0")
+          , a = String(t % 60).padStart(2, "0");
+        return `${String(n).padStart(2, "0")}:${a}:${o}`
+    }
+    constructor(e, t, n, o, a) {
+        this.Milliseconds = e,
+        this.LeftClockwise = t,
+        this.RightClockwise = o,
+        n < 0 ? this.LeftPower = 0 : n > 100 ? this.LeftPower = 100 : this.LeftPower = n,
+        a < 0 ? this.RightPower = 0 : a > 100 ? this.RightPower = 100 : this.RightPower = a
+    }
+    toString() {
+        return `Time: ${this.Milliseconds}, LeftClockwise: ${this.LeftClockwise} LeftPower: ${this.LeftButtPower}, LeftClockwise: ${this.RightClockwise} LeftPower: ${this.RightButtPower}`
+    }
+}
+  , pr = /^([0-9]+),(0|1),(100|[0-9]{1,2}),(0|1),(100|[0-9]{1,2})$/;
+function hr(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/);
+    t.slice(-1)[0] === "" && t.pop();
+    let n = !0;
+    for (let o = 0; o < t.length; o++)
+        if (!t[o].match(pr)) {
+            n = !1;
+            break
+        }
+    return n
+}
+function gr(c) {
+    let t = c.replace(/\r\n|\r/g, `
+`).split(/\n/)
+      , n = [];
+    for (let o of t) {
+        let a = o.match(pr);
+        if (a) {
+            let h = Number(a[1]) * 100
+              , f = a[2] === "1"
+              , y = Number(a[3])
+              , v = a[4] === "1"
+              , O = Number(a[5])
+              , R = new ut(h,f,y,v,O);
+            n.push(R)
+        }
+    }
+    return console.log("script start time: " + n[0].HHMMSS),
+    n
+}
+function mr(c) {
+    let e = [];
+    for (let n of c) {
+        let o = n.Seconds;
+        e[o] || (e[o] = []),
+        e[o].push(n)
+    }
+    return e
+}
+var pt = Kn(vr(), 1)
+  , we = class {
+    Title;
+    Origin;
+    Ranged;
+    Splitted;
+    get OriginMin() {
+        return this.getMin(this.Origin)
+    }
+    get OriginMax() {
+        return this.getMax(this.Origin)
+    }
+    get RangedMin() {
+        return this.getMin(this.Ranged)
+    }
+    get RangedMax() {
+        return this.getMax(this.Ranged)
+    }
+    constructor(e, t) {
+        this.Title = e;
+        let n = (0,
+        pt.getFunscriptFromString)(t)
+          , o = this.ConvertJsonToScript(n);
+        console.log("funscript loaded. lines: " + o.length),
+        console.log("script start time: " + o[0].HHMMSS),
+        this.Origin = o,
+        this.Ranged = o,
+        this.Splitted = this.SplitLines(o)
+    }
+    ConvertJsonToScript(e) {
+        let t = e.actions
+          , n = []
+          , o = 0;
+        for (let a of t) {
+            let h = a.at - o;
+            n.push(new _e(o,a.pos,h)),
+            o = a.at
+        }
+        return n
+    }
+    SetRange(e, t) {
+        let n = [];
+        for (let o of this.Origin) {
+            let a = this.normalize(o.Position, this.OriginMin, this.OriginMax, e, t)
+              , h = new _e(o.Milliseconds,a,o.Duration);
+            n.push(h)
+        }
+        this.Ranged = n,
+        this.Splitted = this.SplitLines(n);
+        for (let o = 0; o < 10; o++)
+            console.log(this.Ranged[o]);
+        console.log("newmin: " + this.getMin(this.Ranged)),
+        console.log("newmax: " + this.getMax(this.Ranged)),
+        console.log("splitted.length: " + this.Splitted.length)
+    }
+    Validate(e) {
+        try {
+            let t = (0,
+            pt.getFunscriptFromString)(e);
+            return !0
+        } catch {
+            return console.log("Loading funscript is failed."),
+            !1
+        }
+    }
+    getMin(e) {
+        let t = e.map(o => o.Position)
+          , n = (o, a) => Math.min(o, a);
+        return t.reduce(n)
+    }
+    getMax(e) {
+        let t = e.map(o => o.Position)
+          , n = (o, a) => Math.max(o, a);
+        return t.reduce(n)
+    }
+    SplitLines(e) {
+        let t = [];
+        for (let o of e) {
+            let a = o.Seconds;
+            t[a] || (t[a] = []),
+            t[a].push(o)
+        }
+        return t
+    }
+    normalize(e, t, n, o, a) {
+        if (t > n)
+            throw new RangeError("oldMin is greater than oldMax.");
+        if (o > a)
+            throw new RangeError("newMin is greater than newMax.");
+        e > n && (e = n),
+        e < t && (e = t);
+        let h = n - t
+          , f = a - o;
+        return (e - t) * f / h + o
+    }
+}
+  , _e = class {
+    Milliseconds = 0;
+    Position = 0;
+    Duration = 0;
+    get Seconds() {
+        return Math.trunc(this.Milliseconds / 1e3)
+    }
+    get ButtPosition() {
+        return this.Position / 100
+    }
+    get HHMMSS() {
+        let e = this.Seconds
+          , t = Math.floor(e / 60)
+          , n = Math.floor(t / 60)
+          , o = String(e % 60).padStart(2, "0")
+          , a = String(t % 60).padStart(2, "0");
+        return `${String(n).padStart(2, "0")}:${a}:${o}`
+    }
+    constructor(e, t, n) {
+        if (e < 0)
+            throw new RangeError("milliseconds does not accept negative values.");
+        if (t < 0 || t > 100)
+            throw new RangeError("position does not accept values outside the range 0 to 100.");
+        if (n < 0)
+            throw new RangeError("milliseconds does not accept negative values.");
+        this.Milliseconds = e,
+        this.Duration = n,
+        this.Position = t
+    }
+    toString() {
+        return `Time: ${this.Milliseconds}, Positon: ${this.Position}, Duration: ${this.Duration}`
+    }
+}
+;
+var Oe = class {
+    _buttplugOperator;
+    _coyoteOperator;
+    _previousSeconds = 0;
+    _timerIDs = new Set;
+    VorzeSAScriptToUFOTW = !1;
+    Offset = 0;
+    DeviceScriptAssignments = new Map;
+    CoyoteSettings = {
+        MinFrequency: 10,
+        MaxFrequency: 50,
+        MinStrength: 1,
+        MaxStrength: 30
+    };
+    Scripts = {
+        TimeRoter: void 0,
+        Vorze_SA: void 0,
+        Funscript: void 0,
+        UFOTW: void 0,
+        CoyoteScript: void 0
+    };
+    constructor(e, t) {
+        this._buttplugOperator = e,
+        this._coyoteOperator = t
+    }
+    LoadScript(e, t) {
+        if (console.log("path: " + t),
+        t.endsWith(".funscript"))
+            return this.Scripts.Funscript = new we(t,e),
+            !0;
+        if (t.endsWith(".coyotescript") && or(e)) {
+            let n = ar(e);
+            return this.Scripts.CoyoteScript = {
+                Script: n,
+                Title: t
+            },
+            this._coyoteOperator.LoadCoyoteScript(n),
+            console.log("CoyoteScript loaded. lines: " + n.length),
+            !0
+        }
+        if (nr(e)) {
+            let n = ir(e);
+            return this.Scripts.TimeRoter = {
+                Script: n,
+                Splitted: lt(n),
+                Title: t
+            },
+            console.log("timeroter script loaded. lines: " + n.length),
+            !0
+        } else if (hr(e)) {
+            let n = gr(e);
+            return this.Scripts.UFOTW = {
+                Script: n,
+                Splitted: mr(n),
+                Title: t
+            },
+            console.log("UFOTW script loaded. lines: " + n.length),
+            !0
+        } else if (cr(e)) {
+            let n = ur(e);
+            return this.Scripts.Vorze_SA = {
+                Script: n,
+                Splitted: dr(n),
+                Title: t
+            },
+            console.log("Vorze_SA script loaded. lines: " + n.length),
+            !0
+        } else
+            return !1
+    }
+    Start() {
+        this._coyoteOperator.Start()
+    }
+    Stop() {
+        this._previousSeconds = 0,
+        this._buttplugOperator.StopAllDevices(),
+        this._coyoteOperator.Stop(),
+        this._timerIDs.forEach(e => {
+            clearTimeout(e)
+        }
+        ),
+        this._timerIDs.clear()
+    }
+    TimeUpdate(e) {
+        let t = e + this.Offset;
+        this._coyoteOperator.setTime(t);
+        let n = Math.trunc(t);
+        n !== this._previousSeconds && (this.OperateTimeRoterScript(t),
+        this.OperateVorzeSAScript(t),
+        this.OperateFunscript(t),
+        this.OperateUFOTWScript(t),
+        this._previousSeconds = n)
+    }
+    SetFunscriptRange(e, t) {
+        this.Scripts.Funscript?.SetRange(e, t)
+    }
+    GetDeviceScriptType(e) {
+        return this.DeviceScriptAssignments.get(e) ?? "none"
+    }
+    GetTimeRoterDevices() {
+        return this._buttplugOperator.Devices.Viberators.filter(e => {
+            let t = String(e.index);
+            return this.DeviceScriptAssignments.get(t) === "TimeRoter"
+        }
+        )
+    }
+    GetVorzeSARotatorDevices() {
+        return this._buttplugOperator.Devices.Rotators.filter(e => this.DeviceScriptAssignments.get(String(e.index)) === "Vorze_SA")
+    }
+    GetVorzeSAUFOTWDevices() {
+        return this._buttplugOperator.Devices.UFOTW.filter(e => this.DeviceScriptAssignments.get(String(e.index)) === "Vorze_SA")
+    }
+    GetFunscriptLinearDevices() {
+        return this._buttplugOperator.Devices.Linears.filter(e => this.DeviceScriptAssignments.get(String(e.index)) === "Funscript")
+    }
+    GetUFOTWDevices() {
+        return this._buttplugOperator.Devices.UFOTW.filter(e => this.DeviceScriptAssignments.get(String(e.index)) === "UFOTW")
+    }
+    OperateTimeRoterScript(e) {
+        if (!this.Scripts.TimeRoter)
+            return;
+        let t = Math.trunc(e)
+          , n = this.Scripts.TimeRoter.Splitted
+          , o = this.GetTimeRoterDevices();
+        o.length > 0 && t !== this._previousSeconds && n[t + 1] && n[t + 1].forEach(a => {
+            let h = a.Milliseconds - Math.trunc(e * 1e3)
+              , f = `send ViberateMsg: ${a.toString()}`;
+            setTimeout( () => console.log(f), h);
+            let y = window.setTimeout( () => {
+                o.forEach(v => v.vibrate(a.ButtPower))
+            }
+            , h);
+            this._timerIDs.add(y),
+            setTimeout( () => {
+                this._timerIDs.delete(y)
+            }
+            , 3e3)
+        }
+        )
+    }
+    OperateVorzeSAScript(e) {
+        if (!this.Scripts.Vorze_SA)
+            return;
+        let t = Math.trunc(e)
+          , n = this.Scripts.Vorze_SA.Splitted
+          , o = this.GetVorzeSARotatorDevices()
+          , a = this.VorzeSAScriptToUFOTW ? this.GetVorzeSAUFOTWDevices() : [];
+        (o.length > 0 || a.length > 0) && t !== this._previousSeconds && n[t + 1] && n[t + 1].forEach(f => {
+            let y = f.Milliseconds - Math.trunc(e * 1e3)
+              , v = `send RotateMsg: ${f.toString()}`;
+            setTimeout( () => console.log(v), y);
+            let O = window.setTimeout( () => {
+                o.forEach(R => R.rotate(f.ButtPower, f.Clockwise)),
+                this.VorzeSAScriptToUFOTW && a.forEach(R => {
+                    this._buttplugOperator.UFOTWReverseLR ? R.rotate([[f.ButtPower, f.Clockwise], [f.ButtPower, f.Clockwise]]) : R.rotate([[f.ButtPower, f.Clockwise], [f.ButtPower, f.Clockwise]])
+                }
+                )
+            }
+            , y);
+            this._timerIDs.add(O),
+            setTimeout( () => {
+                this._timerIDs.delete(O)
+            }
+            , 3e3)
+        }
+        )
+    }
+    OperateUFOTWScript(e) {
+        if (!this.Scripts.UFOTW)
+            return;
+        let t = Math.trunc(e)
+          , n = this.Scripts.UFOTW.Splitted
+          , o = this.GetUFOTWDevices();
+        o.length > 0 && !this.VorzeSAScriptToUFOTW && t !== this._previousSeconds && n[t + 1] && n[t + 1].forEach(a => {
+            let h = a.Milliseconds - Math.trunc(e * 1e3)
+              , f = `send RotateMsg: ${a.toString()}`;
+            setTimeout( () => console.log(f), h);
+            let y = window.setTimeout( () => {
+                o.forEach(v => {
+                    this._buttplugOperator.UFOTWReverseLR ? v.rotate([[a.RightButtPower, a.RightClockwise], [a.LeftButtPower, a.LeftClockwise]]) : v.rotate([[a.LeftButtPower, a.LeftClockwise], [a.RightButtPower, a.RightClockwise]])
+                }
+                )
+            }
+            , h);
+            this._timerIDs.add(y),
+            setTimeout( () => {
+                this._timerIDs.delete(y)
+            }
+            , 3e3)
+        }
+        )
+    }
+    OperateFunscript(e) {
+        if (!this.Scripts.Funscript)
+            return;
+        let t = Math.trunc(e)
+          , n = e * 1e3
+          , o = this.Scripts.Funscript.Splitted
+          , a = this.GetFunscriptLinearDevices();
+        a.length > 0 && t !== this._previousSeconds && o[t + 1] && o[t + 1].forEach(h => {
+            let f = h.Milliseconds - n
+              , y = `send LinearMsg: ${h.toString()}`;
+            setTimeout( () => console.log(y), f);
+            let v = window.setTimeout( () => {
+                a.forEach(O => O.linear(h.ButtPosition, h.Duration))
+            }
+            , f);
+            this._timerIDs.add(v),
+            setTimeout( () => {
+                this._timerIDs.delete(v)
+            }
+            , 3e3)
+        }
+        )
+    }
+}
+;
+function ht(c) {
+    return c < 10 ? 10 : c <= 100 ? Math.floor(c) : c <= 600 ? Math.floor((c - 100) / 5 + 100) : c <= 1e3 ? Math.floor((c - 600) / 10 + 200) : 10
+}
+function xe(c, e, t) {
+    return Math.max(e, Math.min(t, c))
+}
+function gt(c) {
+    let e = new Uint8Array(20);
+    e[0] = 176,
+    e[1] = (c.sequence & 15) << 4 | (c.modeA & 3) << 2 | c.modeB & 3,
+    e[2] = c.strengthA,
+    e[3] = c.strengthB;
+    for (let t = 0; t < 4; t++)
+        e[4 + t] = c.waveA.freqs[t],
+        e[8 + t] = c.waveA.strengths[t];
+    for (let t = 0; t < 4; t++)
+        e[12 + t] = c.waveB.freqs[t],
+        e[16 + t] = c.waveB.strengths[t];
+    return e
+}
+function br(c) {
+    let e = new Uint8Array(7);
+    return e[0] = 191,
+    e[1] = c.maxStrengthA,
+    e[2] = c.maxStrengthB,
+    e[3] = c.freqBalance,
+    e[4] = c.freqBalance,
+    e[5] = c.strengthBalance,
+    e[6] = c.strengthBalance,
+    e
+}
+function Sr(c) {
+    return c.byteLength < 4 || c.getUint8(0) !== 177 ? null : {
+        sequence: c.getUint8(1),
+        strengthA: c.getUint8(2),
+        strengthB: c.getUint8(3)
+    }
+}
+var Ae = class {
+    device = null;
+    writeChar = null;
+    notifyChar = null;
+    batteryChar = null;
+    isConnected = !1;
+    batteryLevel = 0;
+    channels = {
+        A: {
+            targetStrength: 0,
+            currentStrength: 0,
+            currentFreq: 10,
+            currentWaveStrength: 101
+        },
+        B: {
+            targetStrength: 0,
+            currentStrength: 0,
+            currentFreq: 10,
+            currentWaveStrength: 101
+        }
+    };
+    sequence = 0;
+    config = {
+        maxStrengthA: 200,
+        maxStrengthB: 200,
+        freqBalance: 128,
+        strengthBalance: 128
+    };
+    listeners = {};
+    constructor() {}
+    on(e, t) {
+        this.listeners[e] || (this.listeners[e] = []),
+        this.listeners[e].push(t)
+    }
+    emit(e, t) {
+        this.listeners[e] && this.listeners[e].forEach(n => n(t))
+    }
+    async requestDevice() {
+        return this.device = await navigator.bluetooth.requestDevice({
+            filters: [{
+                namePrefix: "47L12"
+            }],
+            optionalServices: [6156, 6154]
+        }),
+        this.device.addEventListener("gattserverdisconnected", this.handleDisconnect.bind(this)),
+        this.device
+    }
+    async connect() {
+        if (!this.device)
+            throw new Error("Device not found. Call requestDevice() first.");
+        let e = await this.device.gatt?.connect();
+        if (!e)
+            throw new Error("Could not connect to GATT server");
+        let t = await e.getPrimaryService(6156);
+        this.writeChar = await t.getCharacteristic(5386),
+        this.notifyChar = await t.getCharacteristic(5387),
+        await this.notifyChar.startNotifications(),
+        this.notifyChar.addEventListener("characteristicvaluechanged", this.handleNotification.bind(this));
+        try {
+            let n = await e.getPrimaryService(6154);
+            this.batteryChar = await n.getCharacteristic(5376),
+            await this.batteryChar.startNotifications(),
+            this.batteryChar.addEventListener("characteristicvaluechanged", this.handleBattery.bind(this)),
+            await this.readBattery()
+        } catch (n) {
+            console.warn("Battery service not available", n)
+        }
+        this.isConnected = !0,
+        this.emit("connect"),
+        await this.sendConfig()
+    }
+    disconnect() {
+        this.device?.gatt?.connected && this.device.gatt.disconnect()
+    }
+    handleDisconnect() {
+        this.isConnected = !1,
+        this.emit("disconnect")
+    }
+    async readBattery() {
+        if (!this.batteryChar)
+            return;
+        let e = await this.batteryChar.readValue();
+        this.batteryLevel = e.getUint8(0),
+        this.emit("battery", this.batteryLevel)
+    }
+    handleBattery(e) {
+        let t = e.target.value;
+        t && (this.batteryLevel = t.getUint8(0),
+        this.emit("battery", this.batteryLevel))
+    }
+    async setConfig(e) {
+        this.config = {
+            ...this.config,
+            ...e
+        },
+        this.isConnected && await this.sendConfig()
+    }
+    async sendConfig() {
+        if (!this.writeChar)
+            return;
+        let e = br(this.config);
+        await this.writeChar.writeValue(e)
+    }
+    setStrength(e, t) {
+        console.log(`SetStrength: channel=${e}, value=${t}`);
+        let n = this.channels[e]
+          , o = xe(t, 0, 200);
+        n.targetStrength !== o && (n.targetStrength = o)
+    }
+    async sendWaveform(e, t, n) {
+        if (!this.writeChar || !this.isConnected)
+            return;
+        let o = this.channels[e];
+        o.currentFreq = t,
+        o.currentWaveStrength = xe(n, 0, 100),
+        this.sequence = (this.sequence + 1) % 16,
+        this.sequence === 0 && (this.sequence = 1);
+        let a = this.getWaveformQuad("A")
+          , h = this.getWaveformQuad("B")
+          , f = gt({
+            sequence: this.sequence,
+            modeA: 3,
+            modeB: 3,
+            strengthA: this.channels.A.targetStrength,
+            strengthB: this.channels.B.targetStrength,
+            waveA: a,
+            waveB: h
+        });
+        try {
+            console.log(`B0 Write, freq: ${t}, strength: ${n}`),
+            await this.writeChar.writeValue(f)
+        } catch (y) {
+            console.error("B0 Write failed", y)
+        }
+    }
+    async sendWaveformQuadPairs(e, t) {
+        if (!this.writeChar || !this.isConnected)
+            return;
+        if (!Array.isArray(t) || t.length !== 4)
+            throw new Error("pairs must be an array of 4 {frequency, strength} entries");
+        let n = t.map(Z => ht(Z.frequency))
+          , o = t.map(Z => xe(Z.strength, 0, 100))
+          , a = {
+            freqs: n,
+            strengths: o
+        }
+          , h = this.channels[e];
+        h.currentFreq = t[0].frequency,
+        h.currentWaveStrength = o[0];
+        let f = e === "A" ? "B" : "A"
+          , y = this.getWaveformQuad(f)
+          , v = e === "A" ? a : y
+          , O = e === "B" ? a : y;
+        this.sequence = (this.sequence + 1) % 16,
+        this.sequence === 0 && (this.sequence = 1);
+        let R = gt({
+            sequence: this.sequence,
+            modeA: 3,
+            modeB: 3,
+            strengthA: this.channels.A.targetStrength,
+            strengthB: this.channels.B.targetStrength,
+            waveA: v,
+            waveB: O
+        });
+        try {
+            await this.writeChar.writeValue(R)
+        } catch (Z) {
+            console.error("B0 Write failed", Z)
+        }
+    }
+    getWaveformQuad(e) {
+        let t = this.channels[e]
+          , n = [0, 0, 0, 0]
+          , o = [0, 0, 0, 0]
+          , a = ht(t.currentFreq)
+          , h = t.currentWaveStrength;
+        for (let f = 0; f < 4; f++)
+            n[f] = a,
+            o[f] = h;
+        return {
+            freqs: n,
+            strengths: o
+        }
+    }
+    handleNotification(e) {
+        let t = e.target.value;
+        if (!t)
+            return;
+        let n = Sr(t);
+        n && (this.channels.A.currentStrength = n.strengthA,
+        this.channels.B.currentStrength = n.strengthB,
+        this.channels.A.targetStrength = n.strengthA,
+        this.channels.B.targetStrength = n.strengthB,
+        this.emit("strength", {
+            A: n.strengthA,
+            B: n.strengthB
+        }))
+    }
+}
+;
+var Be = class {
+    _coyote;
+    _intervalId = null;
+    _currentTime = 0;
+    _prevTickTime = 0;
+    MinFrequency = 50;
+    MaxFrequency = 50;
+    MinStrength = 10;
+    MaxStrength = 40;
+    _originalCoyoteScript = [];
+    _compiledMap25 = new Map;
+    constructor() {
+        this._coyote = new Ae
+    }
+    get controller() {
+        return this._coyote
+    }
+    Start() {
+        this._intervalId === null && (this._intervalId = window.setInterval( () => this.Tick(), 100))
+    }
+    Stop() {
+        this._currentTime = 0,
+        this._intervalId !== null && (window.clearInterval(this._intervalId),
+        this._intervalId = null),
+        this._coyote.isConnected && (this._coyote.sendWaveform("A", 10, 0).catch( () => {}
+        ),
+        this._coyote.sendWaveform("B", 10, 0).catch( () => {}
+        ))
+    }
+    setTime(e) {
+        this._currentTime = e
+    }
+    LoadCoyoteScript(e) {
+        this._compiledMap25.clear(),
+        !(!e || e.length === 0) && (this._originalCoyoteScript = e,
+        this.CompileCoyoteScript())
+    }
+    async Tick() {
+        if (!this._coyote.isConnected || this._compiledMap25?.size === 0)
+            return;
+        this._currentTime <= this._prevTickTime && (this._currentTime += .1),
+        this._prevTickTime = this._currentTime;
+        let e = Math.floor(this._currentTime * 1e3 / 25) * 25
+          , t = this._compiledMap25.get(e);
+        if (t == null || t == null)
+            throw new Error("Command is null or undefined: timeKey=" + e);
+        let n = this._compiledMap25.get(e + 25) ?? t
+          , o = this._compiledMap25.get(e + 50) ?? t
+          , a = this._compiledMap25.get(e + 75) ?? t;
+        if (Number.isNaN(t.strength) && console.log("NaN error"),
+        (t.strength != 0 || n.strength != 0 || o.strength != 0 || a.strength != 0) && (console.log(`Coyote Tick: time=${this._currentTime.toFixed(2)}s, key=${e}`),
+        console.log(`1: freq=${t.frequency}, strength=${t.strength}
+2: freq=${n.frequency}, strength=${n.strength}
+3: freq=${o.frequency}, strength=${o.strength}
+4: freq=${a.frequency}, strength=${a.strength}`)),
+        t && t.strength !== 0)
+            try {
+                this._coyote.sendWaveformQuadPairs("A", [{
+                    frequency: t.frequency,
+                    strength: t.strength
+                }, {
+                    frequency: n.frequency,
+                    strength: n.strength
+                }, {
+                    frequency: o.frequency,
+                    strength: o.strength
+                }, {
+                    frequency: a.frequency,
+                    strength: a.strength
+                }])
+            } catch (h) {
+                console.error(h)
+            }
+    }
+    UpdateSettings(e, t) {
+        this.MinStrength = e,
+        this.MaxStrength = t,
+        this._coyote.setStrength("A", t),
+        this._coyote.setStrength("B", t),
+        this.CompileCoyoteScript()
+    }
+    normalize(e, t, n, o, a) {
+        if (e === 0)
+            return 0;
+        e > t && (e = t),
+        e < n && (e = n);
+        let h = t - n
+          , f = o - a
+          , y = e - n == 0 ? a : Math.floor((e - n) * f / h) + a;
+        return Number.isNaN(y) && console.log("NaN error"),
+        y
+    }
+    CompileCoyoteScript() {
+        if (console.log("Compiling Coyote Script..."),
+        this._compiledMap25.clear(),
+        !this._originalCoyoteScript || this._originalCoyoteScript.length === 0)
+            return;
+        let e = this._originalCoyoteScript.map(v => v.Strength).filter(v => v > 0)
+          , t = 0;
+        for (let v of e)
+            v > t && (t = v);
+        let n = 100;
+        for (let v of e)
+            v < n && (n = v);
+        let o = this.MinStrength * (100 / this.MaxStrength);
+        console.log(`Coyote Script Strength Range: scriptMin=${n}, scriptMax=${t}, ActualMin=${o}`);
+        let a = [...this._originalCoyoteScript].sort( (v, O) => v.Milliseconds - O.Milliseconds)
+          , h = 0
+          , f = 0
+          , y = 0;
+        a.forEach(v => {
+            for (; y < v.Milliseconds; )
+                this._compiledMap25.set(y, {
+                    frequency: h,
+                    strength: f
+                }),
+                y += 25;
+            let O = 0;
+            v.Strength > 0 && (O = Math.round(this.normalize(v.Strength, t, n, 100, o)));
+            let R = Math.floor(v.Milliseconds / 25) * 25;
+            this._compiledMap25.set(R, {
+                frequency: v.Frequency,
+                strength: O
+            }),
+            h = v.Frequency,
+            f = O,
+            y = R
+        }
+        ),
+        console.log(`CoyoteScript Compiled: ${this._compiledMap25.size} points.`)
+    }
+}
+;
+
+var Re = class {
+
+    constructor(parentFe) {
+        this.parent = parentFe;
+        this.currentGroupName = null; // groupTree の選択状態
+
+        this.initializeGroupRoot();
+
+        // ★ ソートボタン
+        document.getElementById("sortAsc").addEventListener("click", () => {
+            this.sortAllGroups("asc");
+        });
+        document.getElementById("sortDesc").addEventListener("click", () => {
+            this.sortAllGroups("desc");
+        });
+
+        // ★ フォルダ作成
+        document.getElementById("addRootGroupBtn").addEventListener("click", () => {
+            const root = this.getGroups();
+            const rootGroup = root.children["Root"];
+
+            const newName = prompt(currentLang.MESSAGE_INPUT_FOLDERNAME);
+            if (!newName) return;
+
+            rootGroup.children[newName] = {
+                type: "group",
+                children: {}
+            };
+
+            localStorage.setItem("scriptGroups", JSON.stringify(root));
+            this.RenderGroupTree();
+        });
+
+        // ★ ZIP ダウンロード
+        const zipDownloadBtn = document.getElementById("zipDownloadBtn");
+        if (zipDownloadBtn) {
+            zipDownloadBtn.addEventListener("click", () => {
+                this.downloadHierarchyZip();
+            });
+        }
+
+        // ★ ZIP アップロード
+        const zipUploadBtn = document.getElementById("zipUploadBtn");
+        const zipInput = document.getElementById("zipUploadInput");
+        zipUploadBtn.addEventListener("click", () => zipInput.click());
+        zipInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) this.importHierarchyZip(file);
+        });
+
+        // ★ フォルダ選択
+        document.getElementById("folderInputButton").addEventListener("click", () => {
+            document.getElementById("folderInput").click();
+        });
+
+        document.getElementById("folderInput").addEventListener("change", e => {
+            const files = Array.from(e.target.files);
+            this.importHierarchyFolder(files);
+        });
+
+        // ★ groupTree の描画
+        this.RenderGroupTree();
+
+        // ★ groupTree のクリックで選択グループを記録
+        document.getElementById("groupTree").addEventListener("click", (e) => {
+            const li = e.target.closest("li");
+            if (!li) return;
+
+            const groupName = li.dataset.groupName;
+            if (groupName) {
+                this.currentGroupName = groupName;
+            }
+        });
+    }
+
+    // LocalStorage の初期化
+    initializeGroupRoot() {
+        let groups = JSON.parse(localStorage.getItem("scriptGroups"));
+
+        if (!groups || groups.type !== "group") {
+            groups = {
+                type: "group",
+                children: {
+                    "Root": {
+                        type: "group",
+                        children: {}
+                    }
+                }
+            };
+            localStorage.setItem("scriptGroups", JSON.stringify(groups));
+            return;
+        }
+
+        if (!groups.children["Root"]) {
+            groups.children["Root"] = { type: "group", children: {} };
+
+            for (const key of Object.keys(groups.children)) {
+                if (key === "Root") continue;
+                groups.children["Root"].children[key] = groups.children[key];
+                delete groups.children[key];
+            }
+
+            localStorage.setItem("scriptGroups", JSON.stringify(groups));
+        }
+    }
+
+    // グループツリーのソート
+    sortGroupChildren(group, order = "asc") {
+        if (!group || !group.children) return;
+
+        const entries = Object.entries(group.children);
+
+        entries.sort((a, b) => {
+            const nameA = a[0].toLowerCase();
+            const nameB = b[0].toLowerCase();
+
+            if (nameA < nameB) return order === "asc" ? -1 : 1;
+            if (nameA > nameB) return order === "asc" ? 1 : -1;
+            return 0;
+        });
+
+        const newChildren = {};
+        for (const [key, value] of entries) {
+            newChildren[key] = value;
+
+            if (value.type === "group") {
+                this.sortGroupChildren(value, order);
+            }
+        }
+
+        group.children = newChildren;
+    }
+
+    sortAllGroups(order = "asc") {
+        const root = this.getGroups();
+        const rootGroup = root.children["Root"];
+
+        this.sortGroupChildren(rootGroup, order);
+
+        localStorage.setItem("scriptGroups", JSON.stringify(root));
+        this.RenderGroupTree();
+    }
+
+    getGroups() {
+        return JSON.parse(localStorage.getItem("scriptGroups") || "{}");
+    }
+
+    async LoadGroupRecursive(node) {
+        for (const key of Object.keys(node.children)) {
+            const child = node.children[key];
+
+            if (child.type === "file") {
+                // ★ IndexedDB 読み込みを待つ
+                const text = await indexdb_Read(child.fileId);
+
+                // 読み込んだ内容を ScriptOperator に渡す
+                this.parent.ScriptOperator.LoadScript(text, child.name);
+
+                // スクリプトリストを更新
+                this.parent.RefleshScriptLists();
+            }
+
+            // ★ グループは無視（再帰しない場合はコメントアウトのまま）
+            // if (child.type === "group") {
+            //     await this.LoadGroupRecursive(child);
+            // }
+        }
+    }
+
+    // Re に追加する「ツリー描画」関数
+    RenderGroupTree() {
+        const tree = document.getElementById("groupTree");
+        tree.innerHTML = "";
+
+        const root = this.getGroups();
+        const rootGroup = root.children["Root"];
+
+
+        // --- Root の中身だけ描画 ---
+        for (const groupName of Object.keys(rootGroup.children)) {
+            const node = rootGroup.children[groupName];
+            tree.appendChild(this.createTreeNode(`Root/${groupName}`, node));
+        }
+    }
+
+// フォルダ Import
+async importHierarchyFolder(files) {
+    const root = this.getGroups();
+    const rootGroup = root.children["Root"];
+
+    const firstPath = files[0].webkitRelativePath;
+    const topFolder = firstPath.split("/")[0];
+
+    if (!rootGroup.children[topFolder]) {
+        rootGroup.children[topFolder] = {
+            type: "group",
+            children: {}
+        };
+    }
+
+    const baseGroup = rootGroup.children[topFolder];
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    const exclude = ["xlsx","xls","txt","vbs","bin","bat","ofsp",
+                     "webp","jpg","jpeg","png","gif"];
+
+    for (const file of files) {
+        const rel = file.webkitRelativePath;
+        const parts = rel.split("/").filter(p => p.length > 0);
+
+        // 最上位フォルダ名を削る
+        parts.shift();
+
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        // ★ ZIP を見つけたら → その場で展開して登録
+        if (ext === "zip") {
+            const arrayBuffer = await file.arrayBuffer();
+            const zip = await JSZip.loadAsync(arrayBuffer, {
+                decodeFileName: decodeFileNameAuto
+            });
+
+            // ZIP の親フォルダ階層を作る
+            let target = baseGroup;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const p = parts[i];
+                if (!target.children[p]) {
+                    target.children[p] = { type: "group", children: {} };
+                }
+                target = target.children[p];
+            }
+
+            // ZIP 名フォルダ
+            const zipName = file.name.replace(/\.zip$/i, "");
+            if (!target.children[zipName]) {
+                target.children[zipName] = { type: "group", children: {} };
+            }
+            const zipGroup = target.children[zipName];
+
+            // ZIP 展開（processZipEntries に統一）
+            await this.processZipEntries(zip, zipGroup, exclude, MAX_SIZE);
+            continue;
+        }
+
+        // ★ 除外拡張子（ZIP は除外しない）
+        if (exclude.includes(ext)) {
+            console.warn("Skip excluded file:", file.webkitRelativePath);
+            continue;
+        }
+
+        // ★ サイズ制限
+        if (file.size > MAX_SIZE) {
+            console.warn("Skip large file:", file.webkitRelativePath, file.size);
+            continue;
+        }
+
+        // ★ 通常ファイル
+        const uint8 = new Uint8Array(await file.arrayBuffer());
+        const text = decodeContentAuto(uint8);
+
+        await this.insertFileByPath(baseGroup, parts, text);
+    }
+
+    // ソート
+    this.sortGroupChildren(baseGroup, "asc");
+
+    localStorage.setItem("scriptGroups", JSON.stringify(root));
+    this.RenderGroupTree();
+
+    alert("フォルダを読み込みました（ZIP があれば解凍済み）");
+
+    // メディアファイルの名前で検索
+    if (this.MediaNameSpan.innerText) {
+        await this.parent.searchFilesByMediafileName(this.MediaNameSpan.innerText);
+    }
+
+}
+    async processZipRecursive(zip, group) {
+
+        for (const path in zip.files) {
+            const entry = zip.files[path];
+            if (entry.dir) continue;
+
+            const cleanPath = path.replace(/\/+$/, "");
+            if (!cleanPath) continue;
+
+            const parts = cleanPath.split("/").filter(p => p.length > 0);
+            if (parts.length === 0) continue;
+
+            const name = parts[parts.length - 1];
+            const ext = name.split(".").pop().toLowerCase();
+
+            // ZIP の中の ZIP
+            if (ext === "zip") {
+
+                const innerBuffer = await entry.async("uint8array");
+                const innerZip = await JSZip.loadAsync(innerBuffer, {
+                    decodeFileName: decodeFileNameAuto
+                });
+
+                const innerName = name.replace(/\.zip$/i, "");
+
+                // 展開先 group を作る
+                let innerGroup = group;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const p = parts[i];
+                    if (!innerGroup.children[p]) {
+                        innerGroup.children[p] = { type: "group", children: {} };
+                    }
+                    innerGroup = innerGroup.children[p];
+                }
+
+                if (!innerGroup.children[innerName]) {
+                    innerGroup.children[innerName] = { type: "group", children: {} };
+                }
+                innerGroup = innerGroup.children[innerName];
+
+                // 再帰展開
+                await this.processZipRecursive(innerZip, innerGroup);
+
+                continue;
+            }
+
+            // 通常ファイル
+            const uint8 = new Uint8Array(await entry.async("uint8array"));
+            const text = decodeContentAuto(uint8);
+
+            await this.insertFileByPath(group, parts, text);
+        }
+    }
+
+    // ZIP Import
+    async importHierarchyZip(file) {
+
+        const arrayBuffer = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer, {
+            decodeFileName: decodeFileNameAuto
+        });
+
+        const root = this.getGroups();
+        const rootGroup = root.children["Root"];
+
+        const baseName = file.name.replace(/\.zip$/i, "");
+        if (!rootGroup.children[baseName]) {
+            rootGroup.children[baseName] = {
+                type: "group",
+                children: {}
+            };
+        }
+
+        const baseGroup = rootGroup.children[baseName];
+
+        const exclude = ["xlsx","xls","txt","vbs","bin","bat","ofsp",
+                         "webp","jpg","jpeg","png","gif"];
+
+        const MAX_SIZE = 1 * 1024 * 1024;
+
+        // ZIP を再帰展開（ZIP はサイズ制限なし）
+        await this.processZipEntries(zip, baseGroup, exclude, MAX_SIZE);
+
+        this.sortGroupChildren(baseGroup, "asc");
+
+        localStorage.setItem("scriptGroups", JSON.stringify(root));
+        this.RenderGroupTree();
+
+        alert("ZIP を読み込みました");
+
+        // メディアファイルの名前で検索
+        if (this.MediaNameSpan.innerText) {
+            await this.parent.searchFilesByMediafileName(this.MediaNameSpan.innerText);
+        }
+
+    }
+    // Zip再帰読み込み
+async processZipEntries(zip, group, exclude, MAX_SIZE) {
+    for (const path in zip.files) {
+        const entry = zip.files[path];
+        if (entry.dir) continue;
+
+        const cleanPath = path.replace(/\/+$/, "");
+        if (!cleanPath) continue;
+
+        const parts = cleanPath.split("/").filter(p => p.length > 0);
+        if (parts.length === 0) continue;
+
+        const name = parts[parts.length - 1];
+        const ext = name.split(".").pop().toLowerCase();
+
+        // 除外拡張子
+        if (exclude.includes(ext)) continue;
+
+        // サイズ制限（ZIP は除外）
+        if (ext !== "zip" && entry._data.uncompressedSize > MAX_SIZE) continue;
+
+        // 展開先 group を parts から辿る
+        let target = group;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const p = parts[i];
+            if (!target.children[p]) {
+                target.children[p] = { type: "group", children: {} };
+            }
+            target = target.children[p];
+        }
+
+        if (ext === "zip") {
+            // ZIP の中の ZIP
+            const innerBuffer = await entry.async("uint8array");
+            const innerZip = await JSZip.loadAsync(innerBuffer, {
+                decodeFileName: decodeFileNameAuto
+            });
+
+            const zipName = name.replace(/\.zip$/i, "");
+            if (!target.children[zipName]) {
+                target.children[zipName] = { type: "group", children: {} };
+            }
+            const zipGroup = target.children[zipName];
+
+            // 再帰展開
+            await this.processZipEntries(innerZip, zipGroup, exclude, MAX_SIZE);
+        } else {
+            // 通常ファイル
+            const uint8 = new Uint8Array(await entry.async("uint8array"));
+            const text = decodeContentAuto(uint8);
+
+            await this.insertFileByPath(group, parts, text);
+        }
+    }
+}
+
+    // フォルダ優先ソート（昇順・降順）
+    sortGroupChildren(group, order = "asc") {
+        if (!group || !group.children) return;
+
+        // children を配列に変換
+        const entries = Object.entries(group.children);
+
+        entries.sort((a, b) => {
+            const A = a[1];
+            const B = b[1];
+
+            // ★ フォルダ優先
+            if (A.type === "group" && B.type !== "group") return -1;
+            if (A.type !== "group" && B.type === "group") return 1;
+
+            // ★ 名前比較（大文字小文字無視）
+            const nameA = a[0].toLowerCase();
+            const nameB = b[0].toLowerCase();
+
+            if (nameA < nameB) return order === "asc" ? -1 : 1;
+            if (nameA > nameB) return order === "asc" ? 1 : -1;
+            return 0;
+        });
+
+        // 新しい children を作り直す
+        const newChildren = {};
+        for (const [key, value] of entries) {
+            newChildren[key] = value;
+
+            // ★ グループは再帰的にソート
+            if (value.type === "group") {
+                this.sortGroupChildren(value, order);
+            }
+        }
+
+        group.children = newChildren;
+    }
+// async 関数として定義
+async insertFileByPath(group, parts, text) {
+    if (parts.length === 1) {
+        const fileName = parts[0];
+        const fileId = generateUniqueId();
+
+        // 保存完了を待つ
+        await indexdb_Add(fileId, text);
+
+        // 完了後にツリーへ追加
+        group.children[fileName] = {
+            type: "file",
+            name: fileName,
+//            text: text,
+            fileId: fileId
+        };
+        return;
+    }
+
+    const dir = parts.shift();
+    if (!group.children[dir]) {
+        group.children[dir] = {
+            type: "group",
+            children: {}
+        };
+    }
+
+    // 再帰呼び出しも await
+    await this.insertFileByPath(group.children[dir], parts, text);
+}
+
+    createTreeNode(path, node) {
+        const li = document.createElement("li");
+
+        const name = path.split("/").pop();
+        const label = document.createElement("span");
+
+        // --- グループは <> で囲む ---
+        if (node.type === "group") {
+            label.textContent = `【${name}】`;
+        } else {
+            label.textContent = name;
+        }
+
+        li.appendChild(label);
+
+        // --- label はドラッグ専用 ---
+        label.draggable = true;
+        label.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", path);
+            e.stopPropagation();
+        });
+
+        // --- label のクリックは無効化（展開させない） ---
+        label.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // --- li のクリックで展開 ---
+        li.addEventListener("click", (e) => {
+            e.stopPropagation();
+            li.classList.toggle("open");
+        });
+
+        // --- ドロップ処理 ---
+        li.addEventListener("dragover", (e) => e.preventDefault());
+        li.addEventListener("drop", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const fromPath = e.dataTransfer.getData("text/plain");
+            const toPath = path;
+
+            this.moveNode(fromPath, toPath);
+            this.RenderGroupTree();
+        });
+
+        // --- グループの場合 ---
+        if (node.type === "group") {
+            li.classList.add("group");
+
+            // [Load]
+            const loadBtn = document.createElement("button");
+            loadBtn.textContent =  currentLang.ITEM_LABEL_LOAD;
+            loadBtn.className = "tree-action";
+            loadBtn.classList.add("tree-load");
+            loadBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const root = this.getGroups();
+                const targetNode = this.findNodeByPath(root, path);
+                if (!targetNode) return;
+                this.LoadGroupRecursive(targetNode);
+            });
+            li.appendChild(loadBtn);
+
+            //  [Sub]
+            const addBtn = document.createElement("span");
+            addBtn.textContent = currentLang.ITEM_LABEL_FOLDERCREATE;
+            addBtn.className = "tree-action";
+            addBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const newName = prompt(currentLang.MESSAGE_INPUT_FOLDERNAME);
+                if (!newName) return;
+
+                const root = this.getGroups();
+                const targetNode = this.findNodeByPath(root, path);
+                if (!targetNode) return;
+
+                targetNode.children[newName] = {
+                    type: "group",
+                    children: {}
+                };
+
+                localStorage.setItem("scriptGroups", JSON.stringify(root));
+                this.RenderGroupTree();
+            });
+            li.appendChild(addBtn);
+
+            // [Name]
+            const renameBtn = document.createElement("span");
+            renameBtn.textContent = currentLang.ITEM_LABEL_NAMECHANGE;
+            renameBtn.className = "tree-action";
+            renameBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const newName = prompt(currentLang.MESSAGE_INPUT_NAME, name);
+                if (!newName || newName === name) return;
+
+                this.renameNodeByPath(path, newName);
+                this.RenderGroupTree();
+            });
+            li.appendChild(renameBtn);
+
+            // [Del]
+            const deleteBtn = document.createElement("span");
+            deleteBtn.textContent = currentLang.ITEM_LABEL_DELETE;
+            deleteBtn.className = "tree-action";
+            deleteBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (confirm(`「${name}」を削除しますか？`)) {
+                    this.deleteNodeByPath(path);
+                    this.RenderGroupTree();
+                }
+            });
+            li.appendChild(deleteBtn);
+
+            // --- 子ノード ---
+            const ul = document.createElement("ul");
+            for (const childName of Object.keys(node.children)) {
+                const childNode = node.children[childName];
+                ul.appendChild(this.createTreeNode(`${path}/${childName}`, childNode));
+            }
+            li.appendChild(ul);
+        }
+
+        // --- ファイルの場合（[Del] を付ける） ---
+        if (node.type === "file") {
+            const delBtn = document.createElement("span");
+            delBtn.textContent = currentLang.ITEM_LABEL_DELETE;
+            delBtn.className = "tree-action";
+            delBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+
+                const parts = path.split("/").filter(p => p);
+                const fileName = parts.pop();
+                const parentPath = parts.join("/");
+
+                const root = this.getGroups();
+                const parent = parentPath ? this.findNodeByPath(root, parentPath) : root;
+
+                delete parent.children[fileName];
+                localStorage.setItem("scriptGroups", JSON.stringify(root));
+
+                this.RenderGroupTree();
+            });
+            li.appendChild(delBtn);
+        }
+
+        return li;
+    }
+    findNodeByPath(node, path) {
+        const parts = path.split("/").filter(p => p);
+
+        let current = node;
+        for (const part of parts) {
+            if (!current.children || !current.children[part]) return null;
+            current = current.children[part];
+        }
+        return current;
+    }
+    deleteNodeByPath(path) {
+        const parts = path.split("/").filter(p => p);
+        const name = parts.pop();
+        const parentPath = parts.join("/");
+
+        const root = this.getGroups();
+        const parent = parentPath ? this.findNodeByPath(root, parentPath) : root;
+
+        delete parent.children[name];
+
+        localStorage.setItem("scriptGroups", JSON.stringify(root));
+    }
+    renameNodeByPath(path, newName) {
+        const parts = path.split("/").filter(p => p);
+        const oldName = parts.pop();
+        const parentPath = parts.join("/");
+
+        const root = this.getGroups();
+        const parent = parentPath ? this.findNodeByPath(root, parentPath) : root;
+
+        parent.children[newName] = parent.children[oldName];
+        delete parent.children[oldName];
+
+        localStorage.setItem("scriptGroups", JSON.stringify(root));
+    }
+    moveNode(fromPath, toPath) {
+        const root = this.getGroups();
+
+        // 移動元
+        const fromParts = fromPath.split("/").filter(p => p);
+        const fromName = fromParts.pop();
+        const fromParentPath = fromParts.join("/");
+        const fromParent = fromParentPath ? this.findNodeByPath(root, fromParentPath) : root;
+
+        const nodeToMove = fromParent.children[fromName];
+        if (!nodeToMove) return;
+
+        // 移動先
+        const toNode = this.findNodeByPath(root, toPath);
+        if (!toNode || toNode.type !== "group") return;
+
+        // 移動処理
+        toNode.children[fromName] = nodeToMove;
+        delete fromParent.children[fromName];
+
+        localStorage.setItem("scriptGroups", JSON.stringify(root));
+    }
+
+    // ZIP ダウンロードボタンの処理
+    async downloadHierarchyZip() {
+        const root = this.getGroups();
+        const rootGroup = root.children["Root"];
+
+        const zip = new JSZip();
+
+        // Root 直下のフォルダをすべて ZIP に追加
+        for (const groupName of Object.keys(rootGroup.children)) {
+            const groupNode = rootGroup.children[groupName];
+            const folder = zip.folder(groupName);
+            this.addGroupToZip(folder, groupNode, groupName);
+        }
+
+        const blob = await zip.generateAsync({ type: "blob" });
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = currentLang.ZIP_DOWNLOAD_FILENAME;
+        a.click();
+
+        URL.revokeObjectURL(a.href);
+    }
+
+    //  ZIP にグループを再帰的に追加する関数
+    addGroupToZip(zip, node, path) {
+        for (const name of Object.keys(node.children)) {
+            const child = node.children[name];
+
+            if (child.type === "group") {
+                // フォルダを作成
+                const folder = zip.folder(name);
+                // 再帰的に追加
+                this.addGroupToZip(folder, child, `${path}/${name}`);
+            } else if (child.type === "file") {
+                // ファイルを追加
+                zip.file(name, child.text);
+            }
+        }
+    }
+
+
+
+    Player = document.getElementById("player");
+    MediaNameSpan = document.getElementById("mediaNameSpan");
+    OffsetInput = document.getElementById("offset");
+    OffsetPlusButton = document.getElementById("offsetPlusButton");
+    OffsetMinusButton = document.getElementById("offsetMinusButton");
+    UFOTWsettingli = document.getElementsByClassName("UFOTWsettingli");
+    UFOTWreverseLRCheckbox = document.getElementById("UFOTWreverseLRCheckbox");
+    VorzeSAScriptToUFOTWCheckbox = document.getElementById("VorzeSAScriptToUFOTWCheckbox");
+    DeviceListContainer = document.getElementById("DeviceListContainer");
+    ScriptList = document.getElementById("ScriptList");
+    ScriptInput = document.getElementById("scriptInput");
+    MediaInput = document.getElementById("mediaInput");
+    SeekHourSpan = document.getElementById("seekHourSpan");
+    SeekMinuteSpan = document.getElementById("seekMinuteSpan");
+    SeekSecondSpan = document.getElementById("seekSecondSpan");
+    SeekHourInput = document.getElementById("seekHourInput");
+    SeekMinuteInput = document.getElementById("seekMinuteInput");
+    SeekSecondInput = document.getElementById("seekSecondInput");
+    SeekButton = document.getElementById("seekButton");
+    ConnectServerButton = document.getElementById("connectServerButton");
+    ConnectDeviceButton = document.getElementById("connectDeviceButton");
+    ConnectStatusSpan = document.getElementById("connectStatus");
+    ForceStopButton = document.getElementById("forceStopButton");
+    CoyoteConnectButton = document.getElementById("coyoteConnectButton");
+    FunscriptSlider;
+    _scriptOptions = [];
+    _deviceSelectMap = new Map;
+    _deviceCardMap = new Map;
+    OnDeviceScriptChanged = null;
+    AppendScriptList(e, t) {
+        let n = document.createElement("li")
+          , o = document.createElement("span");
+        return o.className = "name",
+        o.innerText = `[${e}] ${t}`,
+        n.appendChild(o),
+        this.ScriptList.appendChild(n),
+        n
+    }
+    AppendFunscriptToList(e) {
+        let t = this.AppendScriptList("Funscript", e)
+          , n = document.createElement("slider-container");
+        return t.appendChild(n),
+        n.InitializeSlider(),
+        this.FunscriptSlider = n,
+        t
+    }
+    AddDeviceCard(e, t, n, o=!1) {
+        let a = document.createElement("div");
+        a.className = "device-card",
+        a.dataset.deviceKey = e;
+        let h = document.createElement("div");
+        if (h.className = "device-name",
+        h.innerText = t,
+        a.appendChild(h),
+        n.length > 0) {
+            let f = document.createElement("div");
+            f.innerText = "\u6A5F\u80FD: ",
+            a.appendChild(f);
+            let y = document.createElement("span");
+            f.appendChild(y),
+            y.className = "capability-badges",
+            n.forEach(v => {
+                let O = document.createElement("span");
+                O.className = "badge",
+                O.innerText = v,
+                y.appendChild(O)
+            }
+            ),
+            f.appendChild(y)
+        }
+        if (!o) {
+            let f = document.createElement("div")
+              , y = document.createElement("label");
+            y.innerText = "\u30B9\u30AF\u30EA\u30D7\u30C8: ";
+            let v = document.createElement("select");
+            v.dataset.deviceKey = e,
+            this._updateSelectOptions(v, e),
+            v.addEventListener("change", () => {
+                let O = v.value;
+                this.OnDeviceScriptChanged?.(e, O)
+            }
+            ),
+            y.appendChild(v),
+            f.appendChild(y),
+            a.appendChild(f),
+            this._deviceSelectMap.set(e, v)
+        }
+        if (o) {
+            let f = document.createElement("div");
+            f.className = "coyote-settings";
+            let y = document.createElement("label");
+            y.innerText = "\u6700\u5C0F\u5F37\u5EA6: ";
+            let v = document.createElement("input");
+            v.id = "coyoteMinStrength",
+            v.type = "number",
+            v.value = 10 .toString(),
+            v.min = "0",
+            v.max = "100",
+            v.style.width = "4em",
+            y.appendChild(v);
+            let O = document.createElement("label");
+            O.innerText = "\u6700\u5927\u5F37\u5EA6: ";
+            let R = document.createElement("input");
+            R.id = "coyoteMaxStrength",
+            R.type = "number",
+            R.value = 40 .toString(),
+            R.min = "0",
+            R.max = "100",
+            R.style.width = "4em",
+            O.appendChild(R),
+            f.appendChild(y),
+            f.appendChild(O),
+            a.appendChild(f)
+        }
+        return this.DeviceListContainer.appendChild(a),
+        this._deviceCardMap.set(e, a),
+        a
+    }
+    RemoveDeviceCard(e) {
+        let t = this._deviceCardMap.get(e);
+        t && (this.DeviceListContainer.removeChild(t),
+        this._deviceCardMap.delete(e)),
+        this._deviceSelectMap.delete(e)
+    }
+    ClearDeviceLists() {
+        this.DeviceListContainer.innerHTML = "",
+        this._deviceCardMap.clear(),
+        this._deviceSelectMap.clear()
+    }
+    UpdateScriptOptions(e) {
+        this._scriptOptions = e,
+        this._deviceSelectMap.forEach( (t, n) => {
+            let o = t.value;
+            this._updateSelectOptions(t, n),
+            [...t.options].some(a => a.value === o) && (t.value = o)
+        }
+        )
+    }
+    ClearScriptLists() {
+        this.ScriptList.innerHTML = "",
+        this.FunscriptSlider = void 0
+    }
+    AddFunscriptSliderUpdateEvent(e) {
+        let t = this.FunscriptSlider;
+        t?.addEventListener("mouseup", () => {
+            e(t.range_min, t.range_max)
+        }
+        )
+    }
+    _updateSelectOptions(e, t) {
+        e.innerHTML = "";
+        let n = document.createElement("option");
+        n.value = "none",
+        n.innerText = "\uFF08\u306A\u3057\uFF09",
+        e.appendChild(n),
+        this._scriptOptions.forEach(o => {
+            let a = document.createElement("option");
+            a.value = o.value,
+            a.innerText = o.label,
+            e.appendChild(a)
+        }
+        )
+    }
+}
+;
+var Fe = class {
+    ButtplugOperator;
+    ScriptOperator;
+    CoyoteOperator;
+    UI;
+    COYOTE_DEVICE_KEY = "coyote";
+    COYOTE_DEVICE_NAME = "DG-Lab Coyote V3";
+    constructor() {
+        this.ButtplugOperator = new Le,
+        this.CoyoteOperator = new Be,
+        this.ScriptOperator = new Oe(this.ButtplugOperator,this.CoyoteOperator),
+        this.UI = new Re(this),
+        this.addEvents()
+    }
+    async ConnectWasm() {
+        let e = this.UI.ConnectStatusSpan;
+        e.innerText = "Buttplug\u6E96\u5099\u4E2D..",
+        await this.ButtplugOperator.connectWasm() ? e.innerText = "Buttplug\u6E96\u5099\u5B8C\u4E86" : e.innerText = "Buttplug\u6E96\u5099\u306B\u5931\u6557\u3057\u307E\u3057\u305F"
+    }
+    async ConnectServer() {
+        let e = document.getElementById("serverURL")
+          , t = this.UI.ConnectStatusSpan;
+        t.innerText = "\u63A5\u7D9A\u4E2D...",
+        await this.ButtplugOperator.connectWebsocket("ws://" + e.value) ? t.innerText = "\u63A5\u7D9A\u6210\u529F: " + e.value : t.innerText = "\u63A5\u7D9A\u5931\u6557"
+    }
+    RefleshDeviceLists() {
+        let e = this.UI;
+        e.ClearDeviceLists();
+        let t = this.ButtplugOperator.Devices;
+        for (let o of t.Viberators) {
+            let a = String(o.index);
+            e.AddDeviceCard(a, o.name, ["\u632F\u52D5"], !1)
+        }
+        for (let o of t.Rotators) {
+            let a = String(o.index);
+            e.AddDeviceCard(a, o.name, ["\u56DE\u8EE2"], !1)
+        }
+        for (let o of t.Linears) {
+            let a = String(o.index);
+            e.AddDeviceCard(a, o.name, ["\u524D\u5F8C\u904B\u52D5"], !1)
+        }
+        let n = t.UFOTW.length > 0;
+        for (let o of t.UFOTW) {
+            let a = String(o.index);
+            e.AddDeviceCard(a, o.name, ["UFOTW"], !1)
+        }
+        for (let o of e.UFOTWsettingli)
+            o.style.display = n ? "list-item" : "none";
+        this.CoyoteOperator.controller.isConnected && e.AddDeviceCard(this.COYOTE_DEVICE_KEY, this.COYOTE_DEVICE_NAME, ["Coyote"], !0),
+        this._refreshScriptOptionsOnCards()
+    }
+    RefleshScriptLists() {
+        let e = this.UI;
+        e.ClearScriptLists();
+        let t = this.ScriptOperator.Scripts
+          , n = [];
+        t.TimeRoter && (e.AppendScriptList("TimeRoter", t.TimeRoter.Title),
+        n.push({
+            value: "TimeRoter",
+            label: `[TimeRoter] ${t.TimeRoter.Title}`
+        })),
+        t.Vorze_SA && (e.AppendScriptList("Vorze_SA", t.Vorze_SA.Title),
+        n.push({
+            value: "Vorze_SA",
+            label: `[Vorze_SA] ${t.Vorze_SA.Title}`
+        })),
+        t.UFOTW && (e.AppendScriptList("UFOTW", t.UFOTW.Title),
+        n.push({
+            value: "UFOTW",
+            label: `[UFOTW] ${t.UFOTW.Title}`
+        })),
+        t.CoyoteScript && e.AppendScriptList("CoyoteScript", t.CoyoteScript.Title),
+        t.Funscript && (e.AppendFunscriptToList(t.Funscript.Title),
+        n.push({
+            value: "Funscript",
+            label: `[Funscript] ${t.Funscript.Title}`
+        }),
+        e.FunscriptSlider.range_min = t.Funscript.RangedMin,
+        e.FunscriptSlider.range_max = t.Funscript.RangedMax,
+        e.FunscriptSlider.addEventListener("mouseup", () => {
+            let o = e.FunscriptSlider.range_min
+              , a = e.FunscriptSlider.range_max;
+            t.Funscript.SetRange(o, a)
+        }
+        )),
+        e.UpdateScriptOptions(n)
+    }
+    _refreshScriptOptionsOnCards() {
+        let e = this.ScriptOperator.Scripts
+          , t = [];
+        e.TimeRoter && t.push({
+            value: "TimeRoter",
+            label: `[TimeRoter] ${e.TimeRoter.Title}`
+        }),
+        e.Vorze_SA && t.push({
+            value: "Vorze_SA",
+            label: `[Vorze_SA] ${e.Vorze_SA.Title}`
+        }),
+        e.UFOTW && t.push({
+            value: "UFOTW",
+            label: `[UFOTW] ${e.UFOTW.Title}`
+        }),
+        e.Funscript && t.push({
+            value: "Funscript",
+            label: `[Funscript] ${e.Funscript.Title}`
+        }),
+        this.UI.UpdateScriptOptions(t)
+    }
+    OffsetValueChanged(e) {
+        this.ScriptOperator.Offset = e
+    }
+    OffsetPlusMinusButtonEvent(e) {
+        let t = this.UI.OffsetInput
+          , n = Number(t.value);
+        e ? n += .1 : n -= .1,
+        n = Math.round(n * 100) / 100,
+        t.value = String(n),
+        this.OffsetValueChanged(n)
+    }
+    async LoadMedia() {
+        let e = this.UI,
+            t = e.MediaInput.files;
+        if (!t) return;
+
+        const file = t[0];
+        const url = URL.createObjectURL(file);
+
+        if (file.type.startsWith("video/")) {
+            e.Player.src = url;
+            e.Player.style.height = "480px";
+            e.MediaNameSpan.style.display = "";
+        } else if (file.type.startsWith("audio/")) {
+            e.Player.src = url;
+            e.Player.style.height = "3em";
+            e.Player.style.width = "100%";
+        } else {
+            e.MediaNameSpan.innerText = "このファイルは再生できません: " + file.name;
+            e.MediaInput.files = null;
+            return;
+        }
+
+        e.MediaNameSpan.innerText = file.name;
+        e.MediaInput.files = null;
+
+        await this.searchFilesByMediafileName(file.name);
+    }
+// 全体から検索する関数
+async searchFilesByMediafileName(fileName) {
+    // 拡張子を削除
+    const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+
+    // ルートを取得
+    const root = this.UI.getGroups();
+
+    // Root グループから検索開始
+    const rootGroup = root.children["Root"];
+    await this.searchFilesByGroup(rootGroup, fileNameWithoutExt);
+}
+
+// グループを指定して検索する関数（再帰）
+async searchFilesByGroup(group, fileNameWithoutExt) {
+    for (const key in group.children) {
+        const child = group.children[key];
+
+        if (child.type === "file") {
+            if (child.name && child.name.startsWith(fileNameWithoutExt)) {
+                const text = await indexdb_Read(child.fileId);
+                this.ScriptOperator.LoadScript(text, child.name);
+                this.RefleshScriptLists();
+            }
+        } else if (child.type === "group") {
+            await this.searchFilesByGroup(child, fileNameWithoutExt);
+        }
+    }
+}
+
+    addEvents() {
+        console.log("addEvent() called.");
+        let e = this.UI;
+        e.Player.addEventListener("timeupdate", () => {
+            e.Player.paused || this.ScriptOperator.TimeUpdate(e.Player.currentTime)
+        }
+        ),
+        e.Player.addEventListener("play", () => this.ScriptOperator.Start()),
+        e.Player.addEventListener("pause", () => this.ScriptOperator.Stop()),
+        e.Player.addEventListener("ended", () => this.ScriptOperator.Stop()),
+        e.MediaInput.addEventListener("input", () => {
+            this.LoadMedia()
+        }
+        ),
+        document.getElementById("mediaButton")?.addEventListener("click", () => {
+            e.MediaInput.click()
+        }
+        ),
+        e.SeekButton?.addEventListener("click", () => {
+            let t = Number(e.SeekHourInput.value) || 0
+              , n = Number(e.SeekMinuteInput.value) || 0
+              , o = Number(e.SeekSecondInput.value) || 0
+              , a = t * 3600 + n * 60 + o;
+            !isNaN(a) && isFinite(a) && (e.Player.currentTime = a)
+        }
+        ),
+        e.Player.addEventListener("loadedmetadata", () => {
+            let t = e.Player.duration;
+            isNaN(t) || !isFinite(t) || (t <= 60 ? (e.SeekHourSpan.style.display = "none",
+            e.SeekMinuteSpan.style.display = "none") : t <= 3600 ? (e.SeekHourSpan.style.display = "none",
+            e.SeekMinuteSpan.style.display = "") : (e.SeekHourSpan.style.display = "",
+            e.SeekMinuteSpan.style.display = ""))
+        }
+        ),
+        e.UFOTWreverseLRCheckbox.addEventListener("change", () => {
+            this.ButtplugOperator.UFOTWReverseLR = this.UI.UFOTWreverseLRCheckbox.checked
+        }
+        ),
+        e.VorzeSAScriptToUFOTWCheckbox.addEventListener("change", () => {
+            this.ScriptOperator.VorzeSAScriptToUFOTW = this.UI.VorzeSAScriptToUFOTWCheckbox.checked
+        }
+        ),
+        e.OffsetInput.addEventListener("change", () => {
+            this.OffsetValueChanged(Number(e.OffsetInput.value))
+        }
+        ),
+        e.OffsetPlusButton.addEventListener("click", () => this.OffsetPlusMinusButtonEvent(!0)),
+        e.OffsetMinusButton.addEventListener("click", () => this.OffsetPlusMinusButtonEvent(!1)),
+        e.ConnectDeviceButton.addEventListener("click", async () => {
+            await this.ButtplugOperator.ConnectDevice()
+        }
+        ),
+        e.ConnectServerButton != null ? e.ConnectServerButton?.addEventListener("click", async () => this.ConnectServer()) : this.ConnectWasm(),
+        this.ButtplugOperator.AddDevicesRefleshedEvents( () => this.RefleshDeviceLists()),
+        e.ForceStopButton.addEventListener("click", () => {
+            this.ButtplugOperator.ForceStopAllDevices(),
+            this.CoyoteOperator.Stop()
+        }
+        ),
+        e.OnDeviceScriptChanged = (t, n) => {
+            console.log(`\u30C7\u30D0\u30A4\u30B9 ${t} \u306E\u30B9\u30AF\u30EA\u30D7\u30C8\u5272\u308A\u5F53\u3066\u3092 ${n} \u306B\u5909\u66F4`),
+            this.ScriptOperator.DeviceScriptAssignments.set(t, n)
+        }
+        ,
+        e.CoyoteConnectButton.addEventListener("click", async () => {
+            await this.CoyoteOperator.controller.requestDevice(),
+            await this.CoyoteOperator.controller.connect()
+        }
+        ),
+        this.CoyoteOperator.controller.on("connect", () => {
+            e.AddDeviceCard(this.COYOTE_DEVICE_KEY, this.COYOTE_DEVICE_NAME, ["Coyote"], !0);
+            let t = document.getElementById("coyoteMinStrength")
+              , n = document.getElementById("coyoteMaxStrength");
+            if (n) {
+                let a = Number(n.value);
+                this.CoyoteOperator.controller.setStrength("A", a),
+                this.CoyoteOperator.controller.setStrength("B", a);
+                let h = 0
+                  , f = setInterval( () => {
+                    this.CoyoteOperator.controller.sendWaveform("A", 10, 50),
+                    this.CoyoteOperator.controller.sendWaveform("B", 10, 50),
+                    h++,
+                    h >= 6 && clearInterval(f)
+                }
+                , 100)
+            }
+            let o = () => {
+                let a = Number(t?.value ?? 30)
+                  , h = Number(n?.value ?? 40);
+                console.log(`Coyote settings changed: minStrength=${a}, maxStrength=${h}`),
+                this.CoyoteOperator.UpdateSettings(a, h)
+            }
+            ;
+            t?.addEventListener("change", o),
+            n?.addEventListener("change", o)
+        }
+        ),
+        this.CoyoteOperator.controller.on("disconnect", () => {
+            e.RemoveDeviceCard(this.COYOTE_DEVICE_KEY)
+        }
+        )
+    }
+}
+;
+( () => {
+    var c = Object.defineProperty
+      , e = Math.pow
+      , t = (r, s, u) => s in r ? c(r, s, {
+        enumerable: !0,
+        configurable: !0,
+        writable: !0,
+        value: u
+    }) : r[s] = u
+      , n = (r, s, u) => (t(r, typeof s != "symbol" ? s + "" : s, u),
+    u)
+      , o = (r, s) => ` ${s && s.length > 0 ? s.map(u => `<link rel="stylesheet" href="${u}" />`).join("") : ""} <style> ${r} </style> <div class="range-slider-box"> <div class="row"> <div id="range-slider" class="range-slider"> <div class="container"> <div class="panel"></div> <div class="panel-fill"></div> <div class="container"> <div class="pointer" tabindex="0" role="slider"> <div class="pointer-shape"></div> </div> </div> </div> </div> </div> </div>`
+      , a = ":host{--width:300px;--height:.25rem;--opacity:.4;--panel-bg:#cbd5e1;--panel-bg-hover:#94a3b8;--panel-bg-fill:#475569;--panel-bg-border-radius:1rem;--pointer-width:1rem;--pointer-height:1rem;--pointer-bg:#fff;--pointer-bg-hover:#dcdcdc;--pointer-bg-focus:#dcdcdc;--pointer-shadow:0 0 2px rgba(0,0,0,0.8);--pointer-shadow-hover:0 0 2px #000;--pointer-shadow-focus:var(--pointer-shadow-hover);--pointer-border:1px solid hsla(0,0%,88%,0.5);--pointer-border-hover:1px solid #94a3b8;--pointer-border-focus:var(--pointer-border-hover);--pointer-border-radius:100%;--animate-onclick:.3s}:host{max-width:100%}.range-slider-box{display:flex;position:relative;flex-direction:column}.range-slider{position:relative;width:var(--width,100%);height:var(--height,0.25rem);touch-action:none;max-width:100%;box-sizing:border-box;cursor:pointer}.row{width:100%;display:flex;align-items:center}.range-slider.disabled{opacity:var(--opacity,0.4);cursor:default}.pointer.disabled{-webkit-filter:brightness(0.8);filter:brightness(0.8);cursor:default}.range-slider *{box-sizing:border-box}.container{position:absolute;width:100%;height:100%}.panel{position:absolute;z-index:10;width:100%;height:100%;background:var(--panel-bg,#2d4373);border-radius:var(--panel-bg-border-radius,1rem);overflow:hidden;transition:.3s all ease}.panel-fill{background:var(--panel-bg-fill,#000);border-radius:var(--panel-bg-border-radius,1rem);overflow:hidden;height:100%;position:absolute;z-index:10}.panel:hover{background:var(--panel-bg-hover,#5f79b7)}.disabled .panel:hover{background:var(--panel-bg,#5f79b7)}.pointer{position:absolute;z-index:20;outline:0;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%)}.pointer-shape{background:var(--pointer-bg,#fff);background-size:contain;box-shadow:var(--pointer-shadow);border:var(--pointer-border);border-radius:var(--pointer-border-radius,100%);-webkit-transform:translateX(-50%);transform:translateX(-50%);width:var(--pointer-width,15px);height:var(--pointer-height,15px);transition:.3s all ease}.pointer-shape:hover{background:var(--pointer-bg-hover,#fff);background-size:contain;border:var(--pointer-border-hover);box-shadow:var(--pointer-shadow-hover)}.disabled .pointer-shape:hover{background:var(--pointer-bg,#fff);background-size:contain;border:var(--pointer-border);box-shadow:var(--pointer-shadow)}.pointer:focus .pointer-shape{background:var(--pointer-bg-focus,#fff);background-size:contain;border:var(--pointer-border-focus);box-shadow:var(--pointer-shadow-focus)}.disabled .pointer:focus .pointer-shape{background:var(--pointer-bg,#fff);background-size:contain;border:var(--pointer-border);box-shadow:var(--pointer-shadow)}.type-vertical .range-slider{--width:.25rem;--height:300px;max-height:100%}.type-vertical .range-slider .pointer{left:50%}.type-vertical .range-slider .panel-fill{width:100%}.type-vertical.range-slider-box{flex-direction:row}.type-vertical .row{flex-direction:column}.animate-on-click .pointer,.animate-on-click .panel-fill{transition:all var(--animate-onclick)}.range-dragging .panel-fill{cursor:move}"
+      , h = "pointers-overlap"
+      , f = "pointers-min-distance"
+      , y = "pointers-max-distance"
+      , v = "range-dragging"
+      , O = "data"
+      , R = "min"
+      , Z = "max"
+      , bt = "step"
+      , St = "round"
+      , yt = "type"
+      , Tt = "theme"
+      , Ct = "rtl"
+      , Mt = "btt"
+      , Et = "disabled"
+      , Lt = "keyboard-disabled"
+      , wt = "mousewheel-disabled"
+      , _r = "slider-width"
+      , Or = "slider-height"
+      , xr = "slider-radius"
+      , Dr = "slider-bg"
+      , Ar = "slider-bg-hover"
+      , Br = "slider-bg-fill"
+      , Rr = "pointer-width"
+      , Fr = "pointer-height"
+      , Ir = "pointer-radius"
+      , kr = "pointer-bg"
+      , Pr = "pointer-bg-hover"
+      , Ur = "pointer-bg-focus"
+      , $r = "pointer-shadow"
+      , Hr = "pointer-shadow-hover"
+      , Wr = "pointer-shadow-focus"
+      , Nr = "pointer-border"
+      , Vr = "pointer-border-hover"
+      , qr = "pointer-border-focus"
+      , _t = "animate-onclick"
+      , zr = "css-links"
+      , Y = "vertical"
+      , ie = "horizontal"
+      , ke = (r, s, u, l, p) => {
+        let T = s - r;
+        return T === 0 ? u : (l - u) * (p - r) / T + u
+    }
+      , K = r => !isNaN(parseFloat(r)) && isFinite(r)
+      , P = (r, s) => K(r) ? Number(r) : s
+      , Ot = (r, s) => s === 0 ? 0 : Math.round(r / s) * s
+      , Gr = (r, s=1 / 0) => {
+        if (s === 1 / 0)
+            return r;
+        let u = e(10, s);
+        return Math.round(r * u) / u
+    }
+      , W = r => r == null ? !1 : typeof r == "boolean" ? r : r.trim().toLowerCase() === "true"
+      , Yr = (r, s) => {
+        r.dispatchEvent(new CustomEvent("onPointerClicked",{
+            detail: {
+                $pointer: s
+            }
+        }))
+    }
+      , jr = (r, s) => {
+        r.dispatchEvent(new CustomEvent("onMouseDown",{
+            detail: {
+                nativeEvent: s
+            }
+        }))
+    }
+      , Qr = (r, s) => {
+        r.dispatchEvent(new CustomEvent("onMouseUp",{
+            detail: {
+                nativeEvent: s
+            }
+        }))
+    }
+      , Xr = (r, s) => {
+        r.dispatchEvent(new CustomEvent("onKeyDown",{
+            detail: {
+                nativeEvent: s
+            }
+        }))
+    }
+      , Kr = (r, s) => {
+        if (!s || s.length <= 0)
+            return;
+        let u = s.map(p => K(p) ? P(p, p) : p)
+          , l = {
+            values: u || []
+        };
+        l.value = u[0],
+        l.value0 = u[0],
+        l.value1 = u[0];
+        for (let p = 1; p < u.length; p++)
+            l[`value${p + 1}`] = u[p];
+        r.dispatchEvent(new CustomEvent("change",{
+            detail: l
+        }))
+    }
+      , Pe = (r, s, u) => {
+        let l = 0, p, T, E, g, m = !1, L = (M, B, H, U, F, I) => {
+            let V = l;
+            H !== void 0 && M > H && (M = H),
+            B !== void 0 && M < B && (M = B),
+            l = M;
+            let q = l;
+            return (U === Y && I || U === ie && F) && (q = 100 - q),
+            U === Y ? s.style.top = `${q}%` : s.style.left = `${q}%`,
+            V !== l
+        }
+        , _ = M => M === s || s.contains(M), S = (M, B, H, U) => {
+            p = M,
+            T = B,
+            E = H,
+            g = U
+        }
+        , D = M => {
+            m = M,
+            s.classList.toggle("disabled", m),
+            m ? s.setAttribute("aria-disabled", "true") : s.hasAttribute("aria-disabled") && s.removeAttribute("aria-disabled")
+        }
+        , G = (M, B) => {
+            B == null ? s.removeAttribute(M) : s.setAttribute(M, B)
+        }
+        , N = M => s.getAttribute(M), C = M => {
+            if (!m) {
+                switch (M.key) {
+                case "ArrowLeft":
+                    {
+                        M.preventDefault(),
+                        typeof p == "function" && p(u);
+                        break
+                    }
+                case "ArrowRight":
+                    {
+                        M.preventDefault(),
+                        typeof T == "function" && T(u);
+                        break
+                    }
+                case "ArrowUp":
+                    {
+                        M.preventDefault(),
+                        typeof E == "function" && E(u);
+                        break
+                    }
+                case "ArrowDown":
+                    {
+                        M.preventDefault(),
+                        typeof g == "function" && g(u);
+                        break
+                    }
+                }
+                Xr(r, M)
+            }
+        }
+        , w = () => {
+            m || Yr(r, s)
+        }
+        ;
+        return s.className = `pointer pointer-${u}`,
+        s.addEventListener("keydown", C),
+        s.addEventListener("click", w),
+        {
+            $pointer: s,
+            get percent() {
+                return l
+            },
+            get disabled() {
+                return m
+            },
+            set disabled(M) {
+                D(M)
+            },
+            updatePosition: L,
+            isClicked: _,
+            setCallbacks: S,
+            setAttr: G,
+            getAttr: N,
+            destroy: () => {
+                s.removeEventListener("keydown", C),
+                s.removeEventListener("click", w),
+                s.remove()
+            }
+        }
+    }
+      , Jr = r => {
+        if (r == null)
+            return;
+        if (Array.isArray(r))
+            return r;
+        if (r.trim() === "")
+            return;
+        let s = r.split(",")
+          , u = []
+          , l = !0;
+        for (let p = 0; p < s.length; p++) {
+            let T = s[p].trim();
+            T !== "" && (u.push(T),
+            K(T) || (l = !1))
+        }
+        return l ? u.map(p => Number(p)) : u
+    }
+      , Zr = (r, s) => s ? s.findIndex(u => u === r || u.toString().trim() === r.toString().trim()) : -1
+      , en = r => ({
+        updatePosition: (s, u, l, p) => {
+            if (u.length <= 0)
+                return;
+            let T = u.length === 1
+              , E = u[0]
+              , g = u[u.length - 1];
+            s === Y ? (r.style.removeProperty("width"),
+            r.style.removeProperty("right"),
+            r.style.removeProperty("left"),
+            T ? r.style.height = `${E}%` : r.style.height = `${Math.abs(E - g)}%`,
+            p ? (r.style.bottom = "0%",
+            T ? r.style.top = "auto" : r.style.top = `${Math.min(100 - g, 100 - E)}%`) : (r.style.bottom = "auto",
+            T ? r.style.top = "0%" : r.style.top = `${Math.min(E, g)}%`)) : (r.style.removeProperty("height"),
+            r.style.removeProperty("top"),
+            r.style.removeProperty("bottom"),
+            T ? r.style.width = `${E}%` : r.style.width = `${Math.abs(E - g)}%`,
+            l ? (r.style.right = "0%",
+            T ? r.style.left = "auto" : r.style.left = `${Math.min(100 - g, 100 - E)}%`) : (r.style.right = "auto",
+            T ? r.style.left = "0%" : r.style.left = `${Math.min(E, g)}%`))
+        }
+    })
+      , xt = "--animate-onclick"
+      , tn = "--width"
+      , rn = "--height"
+      , nn = "--panel-bg-border-radius"
+      , sn = "--panel-bg"
+      , on = "--panel-bg-hover"
+      , an = "--panel-bg-fill"
+      , ln = "--pointer-width"
+      , cn = "--pointer-height"
+      , un = "--pointer-border-radius"
+      , dn = "--pointer-bg"
+      , pn = "--pointer-bg-hover"
+      , hn = "--pointer-bg-focus"
+      , gn = "--pointer-shadow"
+      , mn = "--pointer-shadow-hover"
+      , fn = "--pointer-shadow-focus"
+      , vn = "--pointer-border"
+      , bn = "--pointer-border-hover"
+      , Sn = "--pointer-border-focus"
+      , he = (r, s, u) => {
+        let l = new Map;
+        for (let p of r.attributes) {
+            let T = p.nodeName.trim().toLowerCase();
+            if (!s.test(T))
+                continue;
+            let E = T.replace(/\D/g, "").trim()
+              , g = E === "" || E === "0" || E === "1" ? 0 : P(E, 0) - 1
+              , m = u && typeof u == "function" ? u(p.value) : p.value;
+            l.set(g, m)
+        }
+        return l
+    }
+      , yn = r => {
+        if (!r)
+            return null;
+        let s = r.getAttribute(zr);
+        if (!s)
+            return null;
+        let u = s.split(";")
+          , l = [];
+        for (let p of u)
+            p.trim() !== "" && l.push(p.trim());
+        return l
+    }
+      , Dt = [[tn, _r, "sliderWidth", null], [rn, Or, "sliderHeight", null], [nn, xr, "sliderRadius", null], [sn, Dr, "sliderBg", null], [on, Ar, "sliderBgHover", null], [an, Br, "sliderBgFill", null], [ln, Rr, "pointer#Width", /^pointer([0-9]*)-width$/], [cn, Fr, "pointer#Height", /^pointer([0-9]*)-height$/], [un, Ir, "pointer#Radius", /^pointer([0-9]*)-radius$/], [dn, kr, "pointer#Bg", /^pointer([0-9]*)-bg$/], [pn, Pr, "pointer#BgHover", /^pointer([0-9]*)-bg-hover$/], [hn, Ur, "pointer#BgFocus", /^pointer([0-9]*)-bg-focus$/], [gn, $r, "pointer#Shadow", /^pointer([0-9]*)-shadow$/], [mn, Hr, "pointer#ShadowHover", /^pointer([0-9]*)-shadow-hover$/], [fn, Wr, "pointer#ShadowFocus", /^pointer([0-9]*)-shadow-focus$/], [vn, Nr, "pointer#Border", /^pointer([0-9]*)-border$/], [bn, Vr, "pointer#BorderHover", /^pointer([0-9]*)-border-hover$/], [Sn, qr, "pointer#BorderFocus", /^pointer([0-9]*)-border-focus$/]]
+      , Tn = (r, s, u) => {
+        let l = null
+          , p = []
+          , T = new Map
+          , E = (C, w=s) => {
+            let M = [...w.classList];
+            for (let B of M)
+                B.startsWith(C) && s.classList.remove(B)
+        }
+          , g = () => {
+            E("shape");
+            let C = s.querySelectorAll(".pointer");
+            for (let w of C)
+                E("shape", w)
+        }
+          , m = C => {
+            l = C,
+            E("theme-"),
+            typeof C == "string" && s.classList.add(`theme-${C}`)
+        }
+          , L = () => {
+            if (g(),
+            !(p.length <= 0)) {
+                s.classList.add("shape", `shape-${p[0]}`);
+                for (let C = 1; C < p.length; C++) {
+                    let w = p[C];
+                    if (!w)
+                        continue;
+                    let M = s.querySelector(`.pointer-${C}`);
+                    !M || M.classList.add("shape", `shape-${w}`)
+                }
+            }
+        }
+          , _ = (C, w) => {
+            p[C] = w,
+            L()
+        }
+          , S = () => {
+            g();
+            let C = he(r, /^pointer([0-9]*)-shape$/);
+            if (!(C.size <= 0)) {
+                for (let w of C) {
+                    let M = w[0];
+                    p[M] = w[1]
+                }
+                L()
+            }
+        }
+          , D = (C, w) => `${C}-${w}`
+          , G = (C, w, M) => {
+            let B = u[M];
+            if (!B)
+                return;
+            let H = M === 0 ? s : B.$pointer;
+            if (w == null) {
+                T.has(D(C, M)) && T.delete(D(C, M)),
+                H.style.removeProperty(C);
+                return
+            }
+            T.set(D(C, M), w),
+            H.style.setProperty(C, w)
+        }
+          , N = (C, w) => T.get(D(C, w));
+        return ( () => {
+            for (let C of Dt) {
+                let[w,M,B,H] = C;
+                if (H) {
+                    let F = he(r, H);
+                    for (let I of F) {
+                        let V = I[0]
+                          , q = I[1];
+                        G(w, q, V)
+                    }
+                } else {
+                    let F = r.getAttribute(M);
+                    G(w, F, 0)
+                }
+                let U = [];
+                if (B.indexOf("#") === -1)
+                    U.push([B, 0]);
+                else {
+                    U.push([B.replace("#", ""), 0]),
+                    U.push([B.replace("#", "0"), 0]),
+                    U.push([B.replace("#", "1"), 0]);
+                    for (let F = 1; F < u.length; F++)
+                        U.push([B.replace("#", (F + 1).toString()), F])
+                }
+                for (let F of U)
+                    try {
+                        let I = F[0]
+                          , V = F[1];
+                        Object.prototype.hasOwnProperty.call(r, I) || Object.defineProperty(r, I, {
+                            get() {
+                                return N(w, V)
+                            },
+                            set: q => {
+                                G(w, q, V)
+                            }
+                        })
+                    } catch (I) {
+                        console.error(I)
+                    }
+            }
+            m(r.getAttribute(Tt)),
+            S()
+        }
+        )(),
+        {
+            setStyle: G,
+            getStyle: N,
+            get theme() {
+                return l
+            },
+            set theme(C) {
+                m(C)
+            },
+            get pointerShapes() {
+                return p
+            },
+            setPointerShape: _
+        }
+    }
+      , se = "animate-on-click"
+      , At = "range-dragging"
+      , Cn = (r, s, u, l) => {
+        let p = []
+          , T = _ => {
+            for (let S of p)
+                S.update && typeof S.update == "function" && S.update(_)
+        }
+          , E = () => {
+            for (let _ of p)
+                _.destroy && typeof _.destroy == "function" && _.destroy()
+        }
+          , g = (_, S) => {
+            for (let D of p)
+                D.onAttrChange && typeof D.onAttrChange == "function" && D.onAttrChange(_, S)
+        }
+          , m = _ => {
+            if (_.gettersAndSetters) {
+                for (let S of _.gettersAndSetters)
+                    if (!(!S.name || !S.attributes))
+                        try {
+                            Object.prototype.hasOwnProperty.call(r, S.name) || Object.defineProperty(r, S.name, S.attributes)
+                        } catch (D) {
+                            console.error("defineSettersGetters error:", D)
+                        }
+            }
+        }
+          , L = _ => {
+            var S;
+            if (!_.css)
+                return;
+            let D = (S = r.shadowRoot) == null ? void 0 : S.querySelector("style");
+            !D || (D.innerHTML += _.css)
+        }
+        ;
+        return {
+            init: () => {
+                if (window.tcRangeSliderPlugins)
+                    for (let _ of window.tcRangeSliderPlugins) {
+                        let S = _();
+                        p.push(S),
+                        S.init && typeof S.init == "function" && (S.init(r, s, u, l),
+                        m(S),
+                        L(S))
+                    }
+            }
+            ,
+            update: T,
+            onAttrChange: g,
+            destroy: E
+        }
+    }
+      , Mn = 10
+      , Bt = 20
+      , En = (r, s) => {
+        let u = new Map
+          , l = /^value([0-9]*)$/;
+        for (let g of r.attributes) {
+            let m = g.nodeName.trim().toLowerCase();
+            if (!l.test(m))
+                continue;
+            let L = m.replace("value", "").trim()
+              , _ = L === "" || L === "0" || L === "1" ? 0 : P(L, 0) - 1
+              , S = K(g.value) ? P(g.value, 0) : g.value;
+            u.set(_, S)
+        }
+        let p = Math.max(...Array.from(u.keys()))
+          , T = [];
+        T.push([Pe(r, s, 0), u.get(0)]);
+        let E = s;
+        for (let g = 1; g <= p; g++) {
+            let m = s.cloneNode(!0);
+            E.after(m),
+            E = m,
+            T.push([Pe(r, m, g), u.get(g)])
+        }
+        return T
+    }
+      , Rt = (r, s, u, l, p, T, E) => {
+        try {
+            Object.defineProperty(r, l, {
+                configurable: !0,
+                get() {
+                    if (!s)
+                        return;
+                    let g = s.pointers[u];
+                    if (!g)
+                        return;
+                    let m = s.getTextValue(g.percent);
+                    return K(m) ? P(m, m) : m
+                },
+                set: g => {
+                    s.pointers[u] ? s?.setValue(g, u) : s?.addPointer(g)
+                }
+            }),
+            Object.defineProperty(r, p, {
+                configurable: !0,
+                get() {
+                    var g, m;
+                    return (m = (g = s?.pointers[u]) == null ? void 0 : g.getAttr("aria-label")) != null ? m : void 0
+                },
+                set: g => {
+                    !s || s.setAriaLabel(u, g)
+                }
+            }),
+            Object.defineProperty(r, T, {
+                configurable: !0,
+                get() {
+                    var g, m;
+                    return (m = (g = s?.styles) == null ? void 0 : g.pointerShapes[u]) != null ? m : null
+                },
+                set: g => {
+                    !s || !s.styles || s.styles.setPointerShape(u, g)
+                }
+            }),
+            Object.defineProperty(r, E, {
+                configurable: !0,
+                get() {
+                    var g;
+                    return (g = s?.pointers[u].disabled) != null ? g : !1
+                },
+                set: g => {
+                    if (!s)
+                        return;
+                    let m = s?.pointers[u];
+                    !m || (m.disabled = g)
+                }
+            })
+        } catch (g) {
+            console.error(g)
+        }
+    }
+      , Ln = (r, s) => {
+        let u = [["value", "ariaLabel", "pointerShape", "pointerDisabled", 0], ["value0", "ariaLabel0", "pointerShape0", "pointer0Disabled", 0], ["value1", "ariaLabel1", "pointerShape1", "pointer1Disabled", 0]];
+        for (let l = 2; l < Mn; l++)
+            u.push([`value${l}`, `ariaLabel${l}`, `pointer${l}Shape`, `pointer${l}Disabled`, l - 1]);
+        for (let l of u)
+            Rt(r, s, l[4], l[0], l[1], l[2], l[3])
+    }
+      , Ft = (r, s, u) => {
+        var l;
+        let p = (l = u.shadowRoot) == null ? void 0 : l.querySelector(".container");
+        if (p)
+            for (let T of r)
+                s ? p.prepend(T.$pointer) : p.append(T.$pointer)
+    }
+      , wn = (r, s) => {
+        if (!(!s || r.length <= 1)) {
+            for (let u of r)
+                u.$pointer.style.zIndex = Bt.toString();
+            s.$pointer.style.zIndex = (Bt * 2).toString()
+        }
+    }
+      , Ue = 0
+      , le = 100
+      , oe = 2
+      , It = "0.3s"
+      , _n = (r, s, u) => {
+        let l = u.map(i => i[0]), p = null, T = null, E = null, g = null, m = Ue, L = le, _, S, D = ie, G = oe, N = !1, C = !1, w = !1, M = 0, B = 1 / 0, H = !1, U, F, I = !1, V = !1, q = !1, ee = It, kt = [], Pt = i => {
+            I || (i.preventDefault && i.preventDefault(),
+            re(i),
+            window.addEventListener("mousemove", re),
+            window.addEventListener("mouseup", ge),
+            jr(r, i))
+        }
+        , ge = i => {
+            I || (U = void 0,
+            F = void 0,
+            window.removeEventListener("mousemove", re),
+            window.removeEventListener("mouseup", ge),
+            ee && s.classList.add(se),
+            Qr(r, i))
+        }
+        , Dn = (i, d) => {
+            if (l.length <= 0)
+                return;
+            if (l.length === 1)
+                return l[0].isClicked(i) && ee && s.classList.remove(se),
+                l[0];
+            let b = Bn(i);
+            if (H) {
+                let x = d
+                  , j = fe(x);
+                j !== void 0 && (x = Ot(x, j)),
+                b ? (U = x,
+                F = 0,
+                ee && s.classList.remove(se)) : U !== void 0 && (F = x - U,
+                U = x)
+            }
+            if (!An(i) && !b) {
+                for (let x of l)
+                    if (!(!x.isClicked(i) || x.disabled))
+                        return ee && s.classList.remove(se),
+                        x;
+                for (let x of l)
+                    if (p === x)
+                        return x
+            }
+            let A = 1 / 0
+              , k = null;
+            for (let x of l) {
+                if (x.disabled)
+                    continue;
+                let j = Math.abs(d - x.percent);
+                j < A && (A = j,
+                k = x)
+            }
+            return k
+        }
+        , Ut = () => l.findIndex(i => p === i && !i.disabled), re = i => {
+            let d;
+            if (D === Y) {
+                let {height: A, top: k} = s.getBoundingClientRect()
+                  , x = i.type.indexOf("mouse") !== -1 ? i.clientY : i.touches[0].clientY;
+                d = Math.min(Math.max(0, x - k), A) * 100 / A
+            } else {
+                let {width: A, left: k} = s.getBoundingClientRect()
+                  , x = i.type.indexOf("mouse") !== -1 ? i.clientX : i.touches[0].clientX;
+                d = Math.min(Math.max(0, x - k), A) * 100 / A
+            }
+            if ((N || C) && (d = 100 - d),
+            p = Dn(i.target, d),
+            p && wn(l, p),
+            H && l.length > 1 && F !== void 0) {
+                let A = l[0]
+                  , k = l[l.length - 1]
+                  , x = A.percent + F < 0
+                  , j = k.percent + F > 100;
+                if (x || j)
+                    return;
+                for (let Ee = 0; Ee < l.length; Ee++)
+                    z(Ee, l[Ee].percent + F);
+                return
+            }
+            let b = Ut();
+            b !== -1 && (z(b, d),
+            p?.$pointer.focus())
+        }
+        , me = i => {
+            if (I || document.activeElement !== r || p?.disabled)
+                return;
+            i.stopPropagation(),
+            i.preventDefault();
+            let d = i.deltaY < 0
+              , b = N || C
+              , A = d ? !b : b
+              , k = Ut();
+            k !== -1 && (A ? ce(k, l[k].percent) : ue(k, l[k].percent))
+        }
+        , $t = i => {
+            I || V || (D === Y ? C ? z(i, 100) : z(i, 0) : N ? ue(i, l[i].percent) : ce(i, l[i].percent))
+        }
+        , Ht = i => {
+            I || V || (D === Y ? C ? z(i, 0) : z(i, 100) : N ? ce(i, l[i].percent) : ue(i, l[i].percent))
+        }
+        , Wt = i => {
+            I || V || (D === Y ? C ? ue(i, l[i].percent) : ce(i, l[i].percent) : N ? z(i, 100) : z(i, 0))
+        }
+        , Nt = i => {
+            I || V || (D === Y ? C ? ce(i, l[i].percent) : ue(i, l[i].percent) : N ? z(i, 0) : z(i, 100))
+        }
+        , An = i => i.classList.contains("panel"), Bn = i => i.classList.contains("panel-fill"), ce = (i, d) => {
+            if (d === void 0)
+                return;
+            let b = fe(d);
+            b == null && (b = 1),
+            d -= b,
+            d < 0 && (d = 0),
+            z(i, d)
+        }
+        , ue = (i, d) => {
+            if (d === void 0)
+                return;
+            let b = fe(d);
+            b == null && (b = 1),
+            d += b,
+            d > 100 && (d = 100),
+            z(i, d)
+        }
+        , ne = () => {
+            !g || g.update({
+                percents: Vt(),
+                values: qt(),
+                $pointers: zt(),
+                min: Gt(),
+                max: Yt(),
+                data: We(),
+                step: He(),
+                round: Ve(),
+                type: Ne(),
+                textMin: ve(),
+                textMax: be(),
+                rightToLeft: Ge(),
+                bottomToTop: Ye(),
+                pointersOverlap: Ke(),
+                pointersMinDistance: qe(),
+                pointersMaxDistance: ze(),
+                rangeDragging: Je(),
+                disabled: je(),
+                keyboardDisabled: Qe(),
+                mousewheelDisabled: Xe()
+            })
+        }
+        , Rn = () => {
+            ne()
+        }
+        , Fn = i => {
+            if (!(w || l.length <= 1 || L === m))
+                if (i === 0) {
+                    let d = B * 100 / (L - m);
+                    return Math.max(0, l[i + 1].percent - d)
+                } else {
+                    let d = M * 100 / (L - m);
+                    return Math.min(l[i - 1].percent + d, 100)
+                }
+        }
+        , In = i => {
+            if (!(w || l.length <= 1 || L === m))
+                if (i === l.length - 1) {
+                    let d = B * 100 / (L - m);
+                    return Math.min(l[i - 1].percent + d, 100)
+                } else {
+                    let d = M * 100 / (L - m);
+                    return Math.max(0, l[i + 1].percent - d)
+                }
+        }
+        , fe = i => {
+            let d;
+            if (typeof _ == "function") {
+                let b = ke(0, 100, m, L, i);
+                d = _(b, i)
+            } else
+                d = _;
+            if (K(d)) {
+                let b = L - m;
+                return d = b === 0 ? 0 : d * 100 / b,
+                d
+            }
+        }
+        , ae = i => {
+            if (i === void 0)
+                return;
+            let d = ke(0, 100, m, L, i);
+            return S !== void 0 ? S[Math.round(d)] : Gr(d, G)
+        }
+        , ve = () => S !== void 0 ? S[m] : m, be = () => S !== void 0 ? S[L] : L, He = () => _, kn = i => {
+            var d;
+            return i <= 0 || w ? ve() : (d = ae(l[i - 1].percent)) != null ? d : ""
+        }
+        , Pn = i => {
+            var d;
+            return l.length <= 1 || i >= l.length - 1 || w ? be() : (d = ae(l[i + 1].percent)) != null ? d : ""
+        }
+        , Vt = () => l.map(i => i.percent), qt = () => l.map(i => ae(i.percent)), zt = () => l.map(i => i.$pointer), Gt = () => m, Yt = () => L, We = () => S, Ne = () => D, Ve = () => G, qe = () => M, ze = () => B, Un = i => kt[i], Ge = () => N, Ye = () => C, je = () => I, Qe = () => V, Xe = () => q, Ke = () => w, Je = () => H, z = (i, d) => {
+            if (d === void 0)
+                return;
+            let b = fe(d);
+            b !== void 0 && (d = Ot(d, b));
+            let A = l[i];
+            if (!A)
+                return;
+            let k = A.updatePosition(d, Fn(i), In(i), D, N, C);
+            T?.updatePosition(D, l.map(x => x.percent), N, C),
+            ne();
+            for (let x of l) {
+                let j = ae(x.percent);
+                j !== void 0 && (x.setAttr("aria-valuenow", j.toString()),
+                x.setAttr("aria-valuetext", j.toString()))
+            }
+            Hn(),
+            k && Kr(r, l.map(x => ae(x.percent)))
+        }
+        , X = () => {
+            for (let i = 0; i < l.length; i++)
+                z(i, l[i].percent)
+        }
+        , $n = (i, d) => {
+            m = S !== void 0 ? 0 : P(i, Ue),
+            L = S !== void 0 ? S.length - 1 : P(d, le),
+            Se(m),
+            ye(L)
+        }
+        , Hn = () => {
+            var i, d;
+            for (let b = 0; b < l.length; b++) {
+                let A = l[b];
+                A.setAttr("aria-valuemin", ((i = kn(b)) != null ? i : "").toString()),
+                A.setAttr("aria-valuemax", ((d = Pn(b)) != null ? d : "").toString())
+            }
+        }
+        , Se = i => {
+            m = P(i, Ue),
+            m > L && (L = m + le),
+            X()
+        }
+        , ye = i => {
+            L = P(i, le),
+            L < m && (L = m + le),
+            X()
+        }
+        , jt = i => {
+            w = !0;
+            for (let d = 0; d < i.length; d++)
+                Te(i[d], d);
+            w = !1;
+            for (let d = 0; d < i.length; d++)
+                Te(i[d], d)
+        }
+        , Te = (i, d) => {
+            let b;
+            S !== void 0 ? (b = i == null ? 0 : Zr(i, S),
+            b === -1 && (b = 0)) : (b = P(i, m),
+            b < m && (b = m),
+            b > L && (b = L));
+            let A = ke(m, L, 0, 100, b);
+            z(d, A)
+        }
+        , Ce = i => {
+            if (i == null) {
+                _ = void 0;
+                return
+            }
+            if (typeof i == "function") {
+                _ = i,
+                X();
+                return
+            }
+            if (K(i)) {
+                _ = P(i, 1);
+                let d = Math.abs(L - m);
+                _ > d && (_ = void 0),
+                X();
+                return
+            }
+            _ = void 0
+        }
+        , Ze = i => {
+            w = i,
+            X()
+        }
+        , et = i => {
+            (!K(i) || i < 0) && (i = 0),
+            M = i
+        }
+        , tt = i => {
+            (!K(i) || i < 0) && (i = 1 / 0),
+            B = i
+        }
+        , rt = i => {
+            I = i,
+            s.classList.toggle("disabled", I),
+            I ? s.setAttribute("aria-disabled", "true") : s.hasAttribute("aria-disabled") && s.removeAttribute("aria-disabled")
+        }
+        , Qt = i => {
+            V = i
+        }
+        , Xt = i => {
+            q = i,
+            q ? document.removeEventListener("wheel", me) : document.addEventListener("wheel", me, {
+                passive: !1
+            })
+        }
+        , nt = i => {
+            if (i == null) {
+                S = void 0;
+                return
+            }
+            if (S = Jr(i),
+            S === void 0 || S.length <= 0) {
+                S = void 0;
+                return
+            }
+            Se(0),
+            ye(S.length - 1),
+            _ === void 0 && Ce(1)
+        }
+        , it = i => {
+            var d;
+            typeof i == "string" ? D = i.trim().toLowerCase() === Y ? Y : ie : D = ie;
+            let b = (d = r.shadowRoot) == null ? void 0 : d.querySelector(".range-slider-box");
+            if (!b)
+                return;
+            b.className = `range-slider-box type-${D}`,
+            X();
+            let A = D === Y ? "vertical" : "horizontal";
+            for (let k of l)
+                k.setAttr("aria-orientation", A)
+        }
+        , st = i => {
+            N = i,
+            l.length > 1 && Ft(l, N, r),
+            X(),
+            ne()
+        }
+        , ot = i => {
+            C = i,
+            l.length > 1 && Ft(l, C, r),
+            X(),
+            ne()
+        }
+        , at = i => {
+            G = P(i, oe),
+            G < 0 && (G = oe),
+            ne()
+        }
+        , Kt = i => {
+            i == null || i.toString().trim().toLowerCase() === "false" ? (ee = void 0,
+            s.style.removeProperty(xt),
+            s.classList.remove(se)) : (ee = i.toString(),
+            s.style.setProperty(xt, ee),
+            s.classList.add(se))
+        }
+        , Jt = (i, d) => {
+            let b = l[i];
+            !b || (b.setAttr("aria-label", d),
+            kt[i] = d)
+        }
+        , Me = i => {
+            if (U = void 0,
+            l.length <= 1) {
+                H = !1,
+                s.classList.remove(At);
+                return
+            }
+            H = i,
+            s.classList.toggle(At, H)
+        }
+        , Wn = () => {
+            rt(W(r.getAttribute(Et))),
+            V = W(r.getAttribute(Lt)),
+            q = W(r.getAttribute(wt));
+            let i = he(r, /^pointer([0-9]*)-disabled$/, d => W(d));
+            for (let d of i) {
+                let b = d[0];
+                !l[b] || (l[b].disabled = d[1])
+            }
+        }
+        , Nn = () => {
+            let i = he(r, /^aria-label([0-9]*)$/);
+            for (let d of i) {
+                let b = d[0];
+                Jt(b, d[1])
+            }
+        }
+        , Vn = i => {
+            let d = l.length
+              , b = l[d - 1].$pointer
+              , A = b.cloneNode(!0);
+            b.after(A);
+            let k = Pe(r, A, d);
+            return k.setCallbacks($t, Ht, Wt, Nt),
+            l.push(k),
+            Te(i, d),
+            X(),
+            ne(),
+            d
+        }
+        , qn = () => {
+            let i = l.length
+              , d = l[i - 1];
+            return d ? (d.destroy(),
+            l.pop(),
+            l.length <= 1 && Me(!1),
+            X(),
+            ne(),
+            i - 1) : -1
+        }
+        ;
+        return ( () => {
+            var i, d;
+            for (let A of l)
+                A.setCallbacks($t, Ht, Wt, Nt);
+            let b = (i = r.shadowRoot) == null ? void 0 : i.querySelector(".panel-fill");
+            b && (T = en(b)),
+            it(r.getAttribute(yt)),
+            st(W(r.getAttribute(Ct))),
+            ot(W(r.getAttribute(Mt))),
+            $n(r.getAttribute(R), r.getAttribute(Z)),
+            Ce(r.getAttribute(bt)),
+            nt(r.getAttribute(O)),
+            jt(u.map(A => A[1])),
+            Ze(W(r.getAttribute(h))),
+            et(P(r.getAttribute(f), 0)),
+            tt(P(r.getAttribute(y), 1 / 0)),
+            Me(W(r.getAttribute(v))),
+            at(P(r.getAttribute(St), oe)),
+            Wn(),
+            Nn(),
+            E = Tn(r, s, l),
+            Kt((d = r.getAttribute(_t)) != null ? d : It),
+            s.addEventListener("mousedown", Pt),
+            s.addEventListener("mouseup", ge),
+            s.addEventListener("touchmove", re),
+            s.addEventListener("touchstart", re),
+            q || document.addEventListener("wheel", me, {
+                passive: !1
+            }),
+            g = Cn(r, Rn, {
+                setValues: jt,
+                setMin: Se,
+                setMax: ye,
+                setStep: Ce,
+                setPointersOverlap: Ze,
+                setPointersMinDistance: et,
+                setPointersMaxDistance: tt,
+                setDisabled: rt,
+                setType: it,
+                setRightToLeft: st,
+                setBottomToTop: ot,
+                setRound: at,
+                setKeyboardDisabled: Qt,
+                setMousewheelDisabled: Xt,
+                setRangeDragging: Me,
+                setData: nt
+            }, {
+                getPercents: Vt,
+                getValues: qt,
+                getPointerElements: zt,
+                getMin: Gt,
+                getMax: Yt,
+                getStep: He,
+                getData: We,
+                getType: Ne,
+                getRound: Ve,
+                getTextMin: ve,
+                getTextMax: be,
+                isRightToLeft: Ge,
+                isBottomToTop: Ye,
+                isDisabled: je,
+                isKeyboardDisabled: Qe,
+                isMousewheelDisabled: Xe,
+                isPointersOverlap: Ke,
+                isRangeDraggingEnabled: Je,
+                getPointersMinDistance: qe,
+                getPointersMaxDistance: ze
+            }),
+            g.init()
+        }
+        )(),
+        {
+            get pointers() {
+                return l
+            },
+            get styles() {
+                return E
+            },
+            get pluginsManager() {
+                return g
+            },
+            get min() {
+                return ve()
+            },
+            get max() {
+                return be()
+            },
+            get step() {
+                return He()
+            },
+            get pointersOverlap() {
+                return Ke()
+            },
+            set pointersOverlap(i) {
+                Ze(i)
+            },
+            get pointersMinDistance() {
+                return qe()
+            },
+            set pointersMinDistance(i) {
+                et(i)
+            },
+            get pointersMaxDistance() {
+                return ze()
+            },
+            set pointersMaxDistance(i) {
+                tt(i)
+            },
+            get disabled() {
+                return je()
+            },
+            set disabled(i) {
+                rt(i)
+            },
+            get data() {
+                return We()
+            },
+            get type() {
+                return Ne()
+            },
+            set type(i) {
+                it(i)
+            },
+            get rightToLeft() {
+                return Ge()
+            },
+            set rightToLeft(i) {
+                st(i)
+            },
+            get bottomToTop() {
+                return Ye()
+            },
+            set bottomToTop(i) {
+                ot(i)
+            },
+            get round() {
+                return Ve()
+            },
+            set round(i) {
+                at(i)
+            },
+            get animateOnClick() {
+                return ee
+            },
+            set animateOnClick(i) {
+                Kt(i)
+            },
+            get keyboardDisabled() {
+                return Qe()
+            },
+            set keyboardDisabled(i) {
+                Qt(i)
+            },
+            get mousewheelDisabled() {
+                return Xe()
+            },
+            set mousewheelDisabled(i) {
+                Xt(i)
+            },
+            get rangeDragging() {
+                return Je()
+            },
+            set rangeDragging(i) {
+                Me(i)
+            },
+            setMin: Se,
+            setMax: ye,
+            setValue: Te,
+            setStep: Ce,
+            setData: nt,
+            getTextValue: ae,
+            setAriaLabel: Jt,
+            getAriaLabel: Un,
+            addPointer: Vn,
+            removePointer: qn,
+            destroy: () => {
+                s.removeEventListener("mousedown", Pt),
+                s.removeEventListener("mouseup", ge),
+                s.removeEventListener("touchmove", re),
+                s.removeEventListener("touchstart", re),
+                document.removeEventListener("wheel", me);
+                for (let i of l)
+                    i.destroy();
+                g?.destroy()
+            }
+        }
+    }
+      , On = (r, s, u) => {
+        let l = Dt.find( ([g,m,L,_]) => m.replace("#", "") === s.replace(/\d+/g, ""));
+        if (l && r.styles) {
+            let[g,m,L,_] = l
+              , S = s.replace(/\D/g, "").trim()
+              , D = S === "" || S === "0" || S === "1" ? 0 : P(S, 0) - 1;
+            r.styles.setStyle(g, u, D);
+            return
+        }
+        switch (r && r.pluginsManager && r.pluginsManager.onAttrChange(s, u),
+        s) {
+        case R:
+            {
+                r.setMin(u);
+                break
+            }
+        case Z:
+            {
+                r.setMax(u);
+                break
+            }
+        case bt:
+            {
+                r.setStep(u);
+                break
+            }
+        case h:
+            {
+                r.pointersOverlap = W(u);
+                break
+            }
+        case f:
+            {
+                r.pointersMinDistance = P(u, 0);
+                break
+            }
+        case v:
+            {
+                r.rangeDragging = W(u);
+                break
+            }
+        case y:
+            {
+                r.pointersMaxDistance = P(u, 1 / 0);
+                break
+            }
+        case Et:
+            {
+                r.disabled = W(u);
+                break
+            }
+        case Lt:
+            {
+                r.keyboardDisabled = W(u);
+                break
+            }
+        case wt:
+            {
+                r.mousewheelDisabled = W(u);
+                break
+            }
+        case O:
+            {
+                r.setData(u);
+                break
+            }
+        case yt:
+            {
+                r.type = u;
+                break
+            }
+        case Ct:
+            {
+                r.rightToLeft = W(u);
+                break
+            }
+        case Mt:
+            {
+                r.bottomToTop = W(u);
+                break
+            }
+        case St:
+            {
+                r.round = P(u, oe);
+                break
+            }
+        case Tt:
+            {
+                r.styles && (r.styles.theme = u);
+                break
+            }
+        case _t:
+            {
+                r.animateOnClick = u;
+                break
+            }
+        }
+        let p = null;
+        if (/^value([0-9]*)$/.test(s) && (p = "value"),
+        /^pointer([0-9]*)-disabled$/.test(s) && (p = "pointer-disabled"),
+        /^aria-label([0-9]*)$/.test(s) && (p = "aria-label"),
+        /^pointer([0-9]*)-shape$/.test(s) && (p = "pointer-shape"),
+        !p)
+            return;
+        let T = s.replace(/\D/g, "").trim()
+          , E = T === "" || T === "0" || T === "1" ? 0 : P(T, 0) - 1;
+        switch (p) {
+        case "value":
+            {
+                r.setValue(u, E);
+                break
+            }
+        case "pointer-disabled":
+            {
+                let g = r?.pointers[E];
+                if (!g)
+                    return;
+                g.disabled = W(u);
+                break
+            }
+        case "aria-label":
+            {
+                r.setAriaLabel(E, u);
+                break
+            }
+        case "pointer-shape":
+            {
+                r.styles && r.styles.setPointerShape(E, u);
+                break
+            }
+        }
+    }
+      , xn = class extends HTMLElement {
+        constructor() {
+            super(),
+            n(this, "slider"),
+            n(this, "_externalCSSList", []),
+            n(this, "_observer", null),
+            this.attachShadow({
+                mode: "open"
+            })
+        }
+        set step(r) {
+            this.slider && this.slider.setStep(r)
+        }
+        get step() {
+            var r;
+            return (r = this.slider) == null ? void 0 : r.step
+        }
+        set disabled(r) {
+            this.slider && (this.slider.disabled = r)
+        }
+        get disabled() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.disabled) != null ? s : !1
+        }
+        set data(r) {
+            var s;
+            (s = this.slider) == null || s.setData(r)
+        }
+        get data() {
+            var r;
+            return (r = this.slider) == null ? void 0 : r.data
+        }
+        set min(r) {
+            var s;
+            (s = this.slider) == null || s.setMin(r)
+        }
+        get min() {
+            var r;
+            return (r = this.slider) == null ? void 0 : r.min
+        }
+        set max(r) {
+            var s;
+            (s = this.slider) == null || s.setMax(r)
+        }
+        get max() {
+            var r;
+            return (r = this.slider) == null ? void 0 : r.max
+        }
+        set round(r) {
+            !this.slider || (this.slider.round = r)
+        }
+        get round() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.round) != null ? s : oe
+        }
+        set type(r) {
+            !this.slider || (this.slider.type = r ?? ie)
+        }
+        get type() {
+            var r;
+            return ((r = this.slider) == null ? void 0 : r.type) || ie
+        }
+        set pointersOverlap(r) {
+            !this.slider || (this.slider.pointersOverlap = r)
+        }
+        get pointersOverlap() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.pointersOverlap) != null ? s : !1
+        }
+        set pointersMinDistance(r) {
+            !this.slider || (this.slider.pointersMinDistance = r)
+        }
+        get pointersMinDistance() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.pointersMinDistance) != null ? s : 0
+        }
+        set pointersMaxDistance(r) {
+            !this.slider || (this.slider.pointersMaxDistance = r)
+        }
+        get pointersMaxDistance() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.pointersMaxDistance) != null ? s : 1 / 0
+        }
+        set theme(r) {
+            !this.slider || !this.slider.styles || (this.slider.styles.theme = r)
+        }
+        get theme() {
+            var r, s, u;
+            return (u = (s = (r = this.slider) == null ? void 0 : r.styles) == null ? void 0 : s.theme) != null ? u : null
+        }
+        set rtl(r) {
+            !this.slider || (this.slider.rightToLeft = r)
+        }
+        get rtl() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.rightToLeft) != null ? s : !1
+        }
+        set btt(r) {
+            !this.slider || (this.slider.bottomToTop = r)
+        }
+        get btt() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.bottomToTop) != null ? s : !1
+        }
+        set keyboardDisabled(r) {
+            !this.slider || (this.slider.keyboardDisabled = r)
+        }
+        get keyboardDisabled() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.keyboardDisabled) != null ? s : !1
+        }
+        set mousewheelDisabled(r) {
+            !this.slider || (this.slider.mousewheelDisabled = r)
+        }
+        get mousewheelDisabled() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.mousewheelDisabled) != null ? s : !1
+        }
+        set animateOnClick(r) {
+            !this.slider || (this.slider.animateOnClick = r)
+        }
+        get animateOnClick() {
+            var r;
+            return (r = this.slider) == null ? void 0 : r.animateOnClick
+        }
+        get rangeDragging() {
+            var r, s;
+            return (s = (r = this.slider) == null ? void 0 : r.rangeDragging) != null ? s : !1
+        }
+        set rangeDragging(r) {
+            this.slider && (this.slider.rangeDragging = W(r))
+        }
+        get externalCSSList() {
+            return this._externalCSSList
+        }
+        addPointer(r) {
+            var s, u;
+            if (!this.slider)
+                return;
+            let l = (u = (s = this.slider) == null ? void 0 : s.addPointer(r)) != null ? u : 0;
+            Rt(this, this.slider, l, `value${l + 1}`, `ariaLabel${l + 1}`, `pointerShape${l + 1}`, `pointer${l + 1}Disabled`)
+        }
+        removePointer() {
+            var r;
+            !this.slider || (r = this.slider) == null || r.removePointer()
+        }
+        addCSS(r) {
+            if (!this.shadowRoot)
+                return;
+            let s = document.createElement("style");
+            s.textContent = r,
+            this.shadowRoot.appendChild(s)
+        }
+        connectedCallback() {
+            var r, s;
+            if (!this.shadowRoot)
+                return;
+            this._externalCSSList = yn(this),
+            this.shadowRoot.innerHTML = o(a, this._externalCSSList);
+            let u = (r = this.shadowRoot) == null ? void 0 : r.querySelector(".pointer");
+            if (!u)
+                return;
+            let l = (s = this.shadowRoot) == null ? void 0 : s.getElementById("range-slider");
+            if (!l)
+                return;
+            let p = En(this, u);
+            this.slider = _n(this, l, p),
+            Ln(this, this.slider),
+            this._observer = new MutationObserver(T => {
+                T.forEach(E => {
+                    var g;
+                    if (!this.slider || E.type !== "attributes")
+                        return;
+                    let m = E.attributeName;
+                    !m || On(this.slider, m, (g = this.getAttribute(m)) != null ? g : "")
+                }
+                )
+            }
+            ),
+            this._observer.observe(this, {
+                attributes: !0
+            })
+        }
+        disconnectedCallback() {
+            this._observer && this._observer.disconnect(),
+            this.slider && this.slider.destroy()
+        }
+    }
+      , $e = xn;
+    window.tcRangeSlider = $e,
+    customElements.get("toolcool-range-slider") || customElements.define("toolcool-range-slider", $e),
+    customElements.get("tc-range-slider") || customElements.define("tc-range-slider", class extends $e {
+    }
+    )
+}
+)();
+var Ie = class extends HTMLElement {
+    get range_min() {
+        return Number(this.slider.value1)
+    }
+    set range_min(e) {
+        this.slider.value1 = e
+    }
+    get range_max() {
+        return Number(this.slider.value2)
+    }
+    set range_max(e) {
+        this.slider.value2 = e
+    }
+    slider;
+    label_range_min;
+    label_range_max;
+    constructor() {
+        super(),
+        this.attachShadow({
+            mode: "open"
+        });
+        let e = document.createElement("div")
+          , t = document.createElement("span");
+        t.textContent = "\u79FB\u52D5\u7BC4\u56F2: ",
+        e.appendChild(t);
+        let n = document.createElement("span");
+        n.textContent = "0",
+        e.appendChild(n),
+        this.label_range_min = n;
+        let o = document.createElement("tc-range-slider");
+        o.style.padding = "0 1em",
+        o.style.display = "inline-block",
+        e.appendChild(o),
+        this.slider = o;
+        let a = document.createElement("span");
+        n.textContent = "100",
+        e.appendChild(a),
+        this.label_range_max = a,
+        this.shadowRoot?.append(e),
+        this.slider.addEventListener("change", h => {
+            this.label_range_min.textContent = String(this.slider.value1),
+            this.label_range_max.textContent = String(this.slider.value2)
+        }
+        ),
+        this.slider.addEventListener("mouseup", h => {
+            console.log(`min: ${this.range_min}, max: ${this.range_max}`)
+        }
+        )
+    }
+    InitializeSlider() {
+        this.slider.min = 0,
+        this.slider.max = 100,
+        this.slider.step = 1,
+        this.slider.value1 = 0,
+        this.slider.value2 = 100,
+        this.slider.sliderWidth = "200px",
+        this.slider.style.padding = "0 1em"
+    }
+}
+;
+
+customElements.define("slider-container", Ie);
+var vi;
+async function bi() {
+    console.log("main loaded."),
+    vi = new Fe
+    vi.RefleshScriptLists();
+}
+window.onload = bi;
